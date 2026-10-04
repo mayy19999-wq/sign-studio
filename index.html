@@ -27,6 +27,7 @@
   --line:#26363F; --accent:#3BB3AA; --accent-ink:#06201E; --rec:#E8615E; --ok:#5CC48A; --warn:#E0A54A;
   --skin:#D9A57E; --shirt:#0B1218; --hair:#2B1D16; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding:16px;min-height:100vh}
 .wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
@@ -418,7 +419,8 @@ const KEY="signstudio.library.v1";
 let library=[];
 function loadLib(){
   try{ library=JSON.parse(localStorage.getItem(KEY)||"null")||null; }catch{ library=null; }
-  if(!library){ library=[{id:"demo-wave",name:"נפנוף לדוגמה",example:true,created:Date.now(),frames:demoWave()}]; }
+  if(Array.isArray(library)) library=library.filter(s=>s&&s.name&&Array.isArray(s.frames)&&s.frames.length);
+  if(!library||!library.length){ library=[{id:"demo-wave",name:"נפנוף לדוגמה",example:true,created:Date.now(),frames:demoWave()}]; }
 }
 function saveLib(){
   try{ localStorage.setItem(KEY,JSON.stringify(library)); return true; }
@@ -593,6 +595,7 @@ function enterReview(frames){
 }
 function showReview(on){ $("review-controls").hidden=!on; $("rec-controls").hidden=on; }
 $("btn-save").onclick=()=>{
+  if(!review||!review.length){ setStatus("אין הקלטה לשמירה. לחצי קודם \"הקלטה\" וסמני.",true); showReview(false); return; }
   const name=$("sign-name").value.trim();
   if(!name){ setStatus("חסר שם לסימן. כתבי מה הוא אומר, למשל \"תודה\".",true); $("sign-name").focus(); return; }
   library=library.filter(s=>!s.example);
