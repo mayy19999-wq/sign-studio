@@ -124,6 +124,7 @@ footer{font-size:12px;color:var(--muted)}
           <button class="btn primary" id="btn-cam">הפעלת מצלמה</button>
           <label class="btn" for="file-video" style="cursor:pointer">העלאת סרטון</label>
           <input type="file" id="file-video" accept="video/*" hidden>
+          <button class="btn" id="btn-flip" type="button" hidden>החלפת מצלמה</button>
           <label class="chk"><input type="checkbox" id="chk-pip"> הצגת המצלמה על המסך</label>
         </div>
         <div class="row">
@@ -508,7 +509,10 @@ const tmpM=new THREE.Matrix4(), tmpE=new THREE.Euler();
 let lastTs=0;
 function detect(video){
   let ts=performance.now(); if(ts<=lastTs) ts=lastTs+1; lastTs=ts;
-  const pose=lm.pose.detectForVideo(video,ts), hands=lm.hand.detectForVideo(video,ts), face=lm.face.detectForVideo(video,ts);
+  const pose=lm.pose.detectForVideo(video,ts), hands=lm.hand.detectForVideo(video,ts);
+  detect.n=(detect.n||0)+1;
+  if(detect.n%2===1||!detect.face) detect.face=lm.face.detectForVideo(video,ts);
+  const face=detect.face;
   return toFrame(pose,hands,face,video.videoWidth,video.videoHeight);
 }
 function toFrame(pose,hands,face,W,H){
@@ -529,7 +533,7 @@ function toFrame(pose,hands,face,W,H){
   const pairs=[]; cands.forEach(c=>{pairs.push({c,side:"l",d:c.dl});pairs.push({c,side:"r",d:c.dr});});
   pairs.sort((a,b)=>a.d-b.d); const used=new Set();
   for(const pr of pairs){
-    if(out[pr.side]||used.has(pr.c)||pr.d>sw*1.2) continue; used.add(pr.c);
+    if(out[pr.side]||used.has(pr.c)||pr.d>sw*1.7) continue; used.add(pr.c);
     const wz=pn[pr.side==="l"?5:6][2];
     out[pr.side]=pr.c.h.flatMap(q=>[r3((q.x*W-cx)/sw), r3(-(q.y*H-cy)/sw), r3(wz-(q.z*W)/sw*Z_HAND)]);
   }
@@ -554,15 +558,16 @@ function smoothFrame(F){
 
 /* ---------- camera & recording ---------- */
 const video=$("video");
-let camOn=false, recording=null, review=null, countdown=false;
+let processing=false, camOn=false, recording=null, review=null, countdown=false, facing="user", lastVT=-1;
+$("btn-flip").onclick=async()=>{ facing=facing==="user"?"environment":"user"; stopCam(); $("btn-cam").click(); };
 $("chk-pip").onchange=e=>$("pip").classList.toggle("hiddenpip",!e.target.checked);
 $("btn-cam").onclick=async()=>{
   if(camOn){ stopCam(); return; }
   try{
     await loadModels();
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},facingMode:facing,frameRate:{ideal:30}},audio:false});
     video.srcObject=stream; await video.play(); camOn=true; stopPlay(); review=null; showReview(false);
-    $("btn-cam").textContent="כיבוי מצלמה"; $("btn-rec").disabled=false;
+    $("btn-cam").textContent="כיבוי מצלמה"; $("btn-rec").disabled=false; $("btn-flip").hidden=false; lastVT=-1; watchFrames();
     setStatus("המצלמה פועלת. האווטאר מחקה אותך בזמן אמת. כשהידיים והפנים מסומנים בירוק, אפשר להקליט.");
   }catch(err){
     setStatus(err&&err.name==="NotAllowedError"?"אין הרשאה למצלמה. אפשרי גישה למצלמה בהגדרות הדפדפן ונסי שוב.":"לא הצלחתי להפעיל את המצלמה או לטעון את המודלים. ודאי שיש חיבור לאינטרנט ושהקובץ נפתח ב-Chrome.",true);
@@ -571,7 +576,7 @@ $("btn-cam").onclick=async()=>{
 function stopCam(){
   const s=video.srcObject; if(s) s.getTracks().forEach(t=>t.stop());
   video.srcObject=null; camOn=false; recording=null; smooth=null;
-  $("btn-cam").textContent="הפעלת מצלמה"; $("btn-rec").disabled=true; setBadge("מנוחה");
+  $("btn-cam").textContent="הפעלת מצלמה"; $("btn-rec").disabled=true; $("btn-flip").hidden=true; setBadge("מנוחה");
   ["c-body","c-lh","c-rh","c-face"].forEach(c=>setChip(c,false));
   setStatus("המצלמה כבויה.");
 }
@@ -601,8 +606,21 @@ function trim(frames){
   a=Math.max(0,a-3); b=Math.min(frames.length-1,b+3);
   const out=frames.slice(a,b+1); const t0=out[0].t; return out.map(f=>({...f,t:f.t-t0}));
 }
+function smoothClip(frames){
+  const keys=["p","l","r","f","h"];
+  return frames.map((f,i)=>{
+    const o={...f};
+    for(const k of keys){
+      if(!f[k]) continue;
+      const nb=[frames[i-2],frames[i-1],f,frames[i+1],frames[i+2]].filter(x=>x&&x[k]);
+      const w=nb.map(x=>x===f?3:(x===frames[i-1]||x===frames[i+1]?2:1)), W=w.reduce((a,b)=>a+b,0);
+      o[k]=f[k].map((_,j)=>r3(nb.reduce((acc,x,n)=>acc+x[k][j]*w[n],0)/W));
+    }
+    return o;
+  });
+}
 function enterReview(frames){
-  frames=trim(frames);
+  frames=smoothClip(trim(frames));
   if(frames.length<6 || !frames.some(f=>f.l||f.r)){ setStatus("לא זוהו ידיים בהקלטה. ודאי ששתי הידיים בתוך הפריים והתאורה טובה, ונסי שוב.",true); return; }
   review=frames; showReview(true);
   const dur=(frames.at(-1).t/1000).toFixed(1);
@@ -631,7 +649,7 @@ $("file-video").onchange=async e=>{
   v.src=url; v.muted=true; v.playsInline=true;
   await new Promise((res,rej)=>{v.onloadeddata=res; v.onerror=rej;}).catch(()=>{});
   if(!v.videoWidth){ URL.revokeObjectURL(url); setStatus("לא הצלחתי לפתוח את הסרטון. נסי קובץ MP4.",true); return; }
-  setStatus("מעבד את הסרטון..."); setBadge("מעבד"); stopPlay(); smooth=null;
+  setStatus("מעבד את הסרטון..."); setBadge("מעבד"); stopPlay(); smooth=null; processing=true;
   const frames=[];
   await new Promise(resolve=>{
     const step=(now,meta)=>{
@@ -640,7 +658,7 @@ $("file-video").onchange=async e=>{
     };
     v.onended=resolve; v.requestVideoFrameCallback(step); v.play();
   });
-  URL.revokeObjectURL(url); v.removeAttribute("src"); v.load(); smooth=null;
+  URL.revokeObjectURL(url); v.removeAttribute("src"); v.load(); smooth=null; processing=false;
   setBadge("בדיקה"); enterReview(frames);
 };
 
@@ -693,8 +711,16 @@ $("btn-mic").onclick=()=>{
 
 /* ---------- main loop ---------- */
 let lastChip=0;
+const RVFC="requestVideoFrameCallback" in HTMLVideoElement.prototype; let frameReady=false;
+function watchFrames(){ if(!RVFC) return; const cb=()=>{ frameReady=true; if(camOn) video.requestVideoFrameCallback(cb); }; video.requestVideoFrameCallback(cb); }
+function newFrame(){
+  if(RVFC){ if(!frameReady) return false; frameReady=false; return true; }
+  if(video.currentTime===lastVT) return false; lastVT=video.currentTime; return true;
+}
 function loop(now){
-  if(camOn && video.readyState>=2 && lm){
+  if(processing){
+    /* uploaded video is being processed and drives the avatar itself */
+  } else if(camOn && !player && video.readyState>=2 && lm && newFrame()){
     const F=detect(video);
     if(now-lastChip>200){ lastChip=now; setChip("c-body",F); setChip("c-lh",F&&F.l); setChip("c-rh",F&&F.r); setChip("c-face",F&&F.f); }
     if(F){
@@ -702,6 +728,8 @@ function loop(now){
       if(recording){ recording.frames.push({...S,t:Math.round(now-recording.start)}); if(now-recording.start>10000) finishRec(); }
       else if(!countdown) setBadge("חי");
     }
+  } else if(camOn && lm && !player){
+    /* waiting for the next camera frame: keep the last pose */
   } else if(player){
     let ms=now-player.start; const end=player.frames.at(-1).t;
     if(ms>end){ if(player.loop){ player.start=now; ms=0; player.lastMark=-1; } else { const cb=player.onEnd; player=null; setBadge("מנוחה"); if(cb) cb(); applyFrame(restFrame()); renderer.render(scene,camera); requestAnimationFrame(loop); return; } }
