@@ -37,7 +37,10 @@ h1{font:400 22px/1.1 var(--f-display);margin:0}
 .vocab{font:500 12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
 .stage{position:relative;background:var(--stage);border-radius:18px;overflow:hidden;width:100%;aspect-ratio:4/4.4;max-height:52vh;margin-inline:auto}
 .stage canvas{display:block;width:100%;height:100%}
-.badge{position:absolute;top:10px;inset-inline-start:10px;font:600 13px var(--f-body);padding:4px 11px;border-radius:999px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.sv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%;opacity:0;transition:opacity .12s;background:var(--stage);pointer-events:none}
+.sv.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.sv{transition:none}}
+.badge{z-index:2;position:absolute;top:10px;inset-inline-start:10px;font:600 13px var(--f-body);padding:4px 11px;border-radius:999px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
 .badge.live{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .caption{flex:1;min-height:110px;max-height:30vh;overflow-y:auto;font-size:26px;line-height:1.45;padding:14px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line);display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px 10px}
 .caption .w{color:var(--muted)}
@@ -60,6 +63,7 @@ h1{font:400 22px/1.1 var(--f-display);margin:0}
 .tools button{font:600 14px var(--f-body);padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .tools button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .tools .sep{flex:1}
+.tools .mode{padding:8px 12px}
 .tools label{display:inline-flex;gap:6px;align-items:center;font-size:14px;color:var(--muted)}
 .note{font-size:14px;color:var(--muted);min-height:1.2em}
 .note.err{color:var(--rec)}
@@ -71,7 +75,7 @@ footer a{color:var(--accent)}
 <body>
 <div class="app">
   <header><h1>מתרגם סימנים</h1><span class="vocab" id="vocab">טוען...</span></header>
-  <div class="stage"><canvas id="cv" aria-label="אווטאר מסמן"></canvas><div class="badge" id="badge">מוכן</div></div>
+  <div class="stage"><canvas id="cv" aria-label="אווטאר מסמן"></canvas><video class="sv" id="vA" playsinline muted preload="auto"></video><video class="sv" id="vB" playsinline muted preload="auto"></video><div class="badge" id="badge">מוכן</div></div>
   <div class="caption" id="caption" aria-live="polite"></div>
   <div class="tools">
     <button id="replay" type="button">שוב</button>
@@ -80,6 +84,7 @@ footer a{color:var(--accent)}
     <button type="button" class="spd" data-s="1" aria-pressed="true">רגיל</button>
     <button type="button" class="spd" data-s="1.3">מהיר</button>
     <span class="sep"></span>
+    <span id="mode-box" hidden><button type="button" class="mode" data-m="video" aria-pressed="true">סרטון</button> <button type="button" class="mode" data-m="avatar">אווטאר</button></span>
     <label><input type="checkbox" id="spell" checked> איות מילים חסרות</label>
   </div>
   <button class="mic" id="mic"><span class="dot"></span><span id="mic-label">התחילו להקשיב</span></button>
@@ -329,10 +334,11 @@ async function loadVocab(){
   let shared=[], local=[];
   try{ const r=await fetch("signs.json?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); shared=d.signs||[]; } }catch{}
   try{ local=JSON.parse(localStorage.getItem("signstudio.library.v1")||"[]")||[]; }catch{}
-  const ok=s=>s&&s.name&&Array.isArray(s.frames)&&s.frames.length&&!s.example;
+  const ok=s=>s&&s.name&&!s.example&&((Array.isArray(s.frames)&&s.frames.length)||s.video);
   const byName=new Map();
   for(const s of [...shared.filter(ok),...local.filter(ok)]) byName.set(strip(s.name),s); // device recordings override
   library=[...byName.values()];
+  const hasVideo=library.some(s=>s.video); $("mode-box").hidden=!hasVideo; if(!hasVideo) mode="avatar";
   $("vocab").textContent=library.length+" סימנים";
 }
 
@@ -373,19 +379,42 @@ function addText(text){
   if(tokens.length>60){ const cut=tokens.length-60; tokens=tokens.slice(cut); queue.forEach(q=>q.idx-=cut); active-=cut; }
   const start=tokens.length-add.length, batch=[];
   add.forEach((t,i)=>{
-    if(t.sign){ batch.push({frames:t.sign.frames, idx:start+i}); return; }
+    if(t.sign){ batch.push({frames:t.sign.frames, video:t.sign.video, idx:start+i}); return; }
     // fingerspell unknown words of 3+ letters when every letter has a recorded sign
     const w=t.text; if(!$("spell").checked||w.length<3||w.length>9||!/^[\u05D0-\u05EA]+$/.test(w)) return;
     const ls=[...w].map(letterSign); if(ls.some(x=>!x)) return;
-    t.spelled=true; ls.forEach(s=>batch.push({frames:s.frames, idx:start+i, scale:0.75, gap:110}));
+    t.spelled=true; ls.forEach(s=>batch.push({frames:s.frames, video:s.video, idx:start+i, scale:0.75, gap:110}));
   });
   if(batch.length){ lastBatch=batch; queue.push(...batch); }
   renderCaption(); pump();
 }
+/* playback: real sign videos when available, the avatar for everything else */
+let mode="video", busy=false, hideT=0;
+const vids=[$("vA"),$("vB")]; let cur=0;
+const canVideo=q=>mode==="video"&&q.video, canAvatar=q=>Array.isArray(q.frames)&&q.frames.length;
+function hideVideo(){ vids.forEach(v=>{ v.classList.remove("on"); v.pause(); }); }
+function setSrc(v,src){ if(v.dataset.src!==src){ v.dataset.src=src; v.src=src; v.load(); } }
 function pump(){
-  if(player||!queue.length) return;
-  const batch=queue.splice(0);
-  play(batch,{label:"מסמן",onMark:i=>{active=i;renderCaption();},onEnd:()=>{active=-1;renderCaption();pump();}});
+  if(busy) return;
+  while(queue.length&&!canVideo(queue[0])&&!canAvatar(queue[0])) queue.shift();
+  if(!queue.length){ clearTimeout(hideT); hideT=setTimeout(()=>{ if(!busy) hideVideo(); },900); active=-1; renderCaption(); return; }
+  clearTimeout(hideT); busy=true;
+  if(canVideo(queue[0])){ playClip(queue.shift()); return; }
+  const batch=[]; while(queue.length&&!canVideo(queue[0])&&canAvatar(queue[0])) batch.push(queue.shift());
+  hideVideo();
+  play(batch,{label:"מסמן",onMark:i=>{active=i;renderCaption();},onEnd:()=>{busy=false;pump();}});
+}
+function playClip(item){
+  const v=vids[cur], other=vids[1-cur];
+  active=item.idx; renderCaption();
+  setSrc(v,item.video);
+  let finished=false;
+  const finish=()=>{ if(finished) return; finished=true; v.onended=null; v.onerror=null; clearTimeout(guard); cur=1-cur; busy=false; pump(); };
+  const go=()=>{ try{ v.currentTime=0; }catch{} v.playbackRate=speed*(item.scale?1/item.scale:1); const p=v.play(); if(p) p.catch(()=>finish()); v.classList.add("on"); other.classList.remove("on"); };
+  v.onended=finish; v.onerror=finish;
+  const guard=setTimeout(finish,8000);
+  if(v.readyState>=2) go(); else v.addEventListener("canplay",go,{once:true});
+  const nxt=queue.find(q=>canVideo(q)); if(nxt) setSrc(other,nxt.video);
 }
 
 /* ---------- speech ---------- */
@@ -428,8 +457,10 @@ mic.onclick=()=>{
 $("type-form").addEventListener("submit",e=>{ e.preventDefault(); const v=$("type-in").value.trim(); if(v){ addText(v); $("type-in").value=""; } });
 let speed=1;
 document.querySelectorAll(".spd").forEach(b=>b.onclick=()=>{ speed=+b.dataset.s; document.querySelectorAll(".spd").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); });
-$("replay").onclick=()=>{ if(!lastBatch.length) return; queue=[]; stopPlay(); queue.push(...lastBatch.map(s=>({...s}))); pump(); };
-$("clear").onclick=()=>{ tokens=[]; queue=[]; interim=""; active=-1; stopPlay(); renderCaption(); };
+function stopAll(){ queue=[]; stopPlay(); vids.forEach(v=>{ v.onended=null; v.pause(); }); busy=false; }
+$("replay").onclick=()=>{ if(!lastBatch.length) return; stopAll(); queue.push(...lastBatch.map(s=>({...s}))); pump(); };
+$("clear").onclick=()=>{ stopAll(); hideVideo(); tokens=[]; interim=""; active=-1; renderCaption(); };
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{ mode=b.dataset.m; document.querySelectorAll(".mode").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); if(mode==="avatar") hideVideo(); });
 
 /* ---------- main loop ---------- */
 function loop(now){

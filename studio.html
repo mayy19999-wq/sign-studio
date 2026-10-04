@@ -81,6 +81,13 @@ label.chk{display:inline-flex;gap:8px;align-items:center;font-size:14px;color:va
 .letters{display:flex;flex-wrap:wrap;gap:6px}
 .letters button{min-width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:600 17px var(--f-body);cursor:pointer}
 .letters button.done{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vbox{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:60vh;max-width:100%;margin-inline:auto}
+.vbox video{width:100%;height:100%;object-fit:cover;display:block}
+#v-live{transform:scaleX(-1)}
+.vguide{position:absolute;inset:0;pointer-events:none}
+.vguide .g-head{position:absolute;left:38%;right:38%;top:7%;height:22%;border:2px dashed rgba(255,255,255,.75);border-radius:50% 50% 45% 45%}
+.vguide .g-waist{position:absolute;left:8%;right:8%;top:84%;border-top:2px dashed rgba(255,255,255,.75);color:rgba(255,255,255,.85);font-size:12px;padding-top:2px;text-align:center}
+.vcount{position:absolute;inset:0;display:grid;place-items:center;font:400 110px var(--f-display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5)}
 .lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .lib li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
 .lib li:first-child{border-top:0}
@@ -108,6 +115,7 @@ footer{font-size:12px;color:var(--muted)}
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" id="tab-rec" aria-selected="true" data-pane="pane-rec">הקלטת סימן</button>
         <button class="tab" role="tab" id="tab-lib" aria-selected="false" data-pane="pane-lib">המאגר</button>
+        <button class="tab" role="tab" id="tab-vid" aria-selected="false" data-pane="pane-vid">צילום סרטון</button>
         <button class="tab" role="tab" id="tab-tr" aria-selected="false" data-pane="pane-tr">תרגום</button>
       </div>
 
@@ -157,6 +165,37 @@ footer{font-size:12px;color:var(--muted)}
           <input type="file" id="file-import" accept="application/json,.json" hidden>
         </div>
         <p class="hint">כדאי לייצא מדי פעם כגיבוי. המאגר נשמר בדפדפן, וניקוי נתוני הדפדפן ימחק אותו.</p>
+      </div>
+
+      <!-- Video clips of a real signer -->
+      <div class="pane" id="pane-vid" role="tabpanel" hidden>
+        <h2>סרטון של סימן אחד</h2>
+        <ol class="steps">
+          <li>רקע חלק, חולצה כהה, הטלפון יציב. הראש והמותניים בתוך המסגרת המקווקוות.</li>
+          <li>כתבו את המילה, לחצו "צילום", ואחרי הספירה סמנו.</li>
+          <li>התחילו וסיימו כל סימן עם הידיים נחות מול המותניים.</li>
+          <li>שמרו את הקובץ ושלחו אותו ל-Claude. שם הקובץ הוא המילה.</li>
+        </ol>
+        <div class="row">
+          <button class="btn primary" id="v-cam" type="button">הפעלת מצלמה</button>
+          <button class="btn" id="v-flip" type="button" hidden>החלפת מצלמה</button>
+        </div>
+        <div class="vbox" id="v-box" hidden>
+          <video id="v-live" playsinline muted></video>
+          <video id="v-review" playsinline controls hidden></video>
+          <div class="vguide" id="v-guide"><span class="g-head"></span><span class="g-waist">מותניים</span></div>
+          <div class="vcount" id="v-count" hidden></div>
+        </div>
+        <div class="row"><input type="text" id="v-name" placeholder="המילה שמסומנת, למשל: תודה"></div>
+        <div class="row" id="v-rec-row">
+          <button class="btn rec" id="v-rec" type="button" disabled><span class="dot"></span> צילום</button>
+        </div>
+        <div class="row" id="v-done-row" hidden>
+          <button class="btn primary" id="v-save" type="button">שמירת הקובץ</button>
+          <button class="btn" id="v-redo" type="button">צילום חוזר</button>
+        </div>
+        <div class="status" id="v-status">הסרטונים לא נשמרים באתר. אחרי "שמירת הקובץ" הם נשמרים אצלך בטלפון, ומשם שולחים אותם.</div>
+        <p class="hint" id="v-done-list"></p>
       </div>
 
       <!-- Translate -->
@@ -757,6 +796,62 @@ function renderLetters(){
 }
 const _renderLib=renderLib; renderLib=function(){ _renderLib(); renderLetters(); };
 loadLib(); renderLib();
+
+/* ---------- real-signer video clips ---------- */
+(function(){
+  const live=$("v-live"), review=$("v-review"), st=$("v-status");
+  let stream=null, recorder=null, chunks=[], blob=null, facingV="user", stopT=0;
+  const say=(m,err=false)=>{ st.textContent=m; st.classList.toggle("err",err); };
+  const mime=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||"";
+  const ext=mime.includes("mp4")?"mp4":"webm";
+  const doneKey="signstudio.videos.done";
+  const doneList=()=>{ try{ return JSON.parse(localStorage.getItem(doneKey)||"[]"); }catch{ return []; } };
+  const showDone=()=>{ const d=doneList(); $("v-done-list").textContent=d.length?("צולמו ונשמרו: "+d.join(", ")):""; };
+  showDone();
+  async function startCam(){
+    try{
+      if(camOn) stopCam();
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facingV,width:{ideal:720},height:{ideal:960},frameRate:{ideal:30}},audio:false});
+      live.srcObject=stream; live.style.transform=facingV==="user"?"scaleX(-1)":"none"; await live.play();
+      $("v-box").hidden=false; live.hidden=false; review.hidden=true; $("v-guide").hidden=false;
+      $("v-cam").textContent="כיבוי מצלמה"; $("v-flip").hidden=false; $("v-rec").disabled=false;
+      say(window.MediaRecorder?"המצלמה פועלת. כוונו כך שהראש בתוך האליפסה והמותניים על הקו.":"הדפדפן הזה לא תומך בצילום סרטונים. נסו Safari מעודכן או Chrome.", !window.MediaRecorder);
+    }catch(e){ say("לא הצלחתי להפעיל את המצלמה. אשרו גישה למצלמה בהגדרות הדפדפן.",true); }
+  }
+  function stopStream(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; live.srcObject=null; $("v-cam").textContent="הפעלת מצלמה"; $("v-flip").hidden=true; $("v-rec").disabled=true; }
+  $("v-cam").onclick=()=>{ if(stream){ stopStream(); $("v-box").hidden=true; } else startCam(); };
+  $("v-flip").onclick=()=>{ facingV=facingV==="user"?"environment":"user"; stopStream(); startCam(); };
+  $("v-rec").onclick=()=>{
+    if(recorder&&recorder.state==="recording"){ recorder.stop(); return; }
+    if(!$("v-name").value.trim()){ say("כתבו קודם את המילה שמסמנים.",true); $("v-name").focus(); return; }
+    const c=$("v-count"); let n=3; c.hidden=false; c.textContent=n; $("v-rec").disabled=true;
+    const iv=setInterval(()=>{ n--; if(n>0){ c.textContent=n; return; } clearInterval(iv); c.hidden=true; begin(); },700);
+  };
+  function begin(){
+    chunks=[]; recorder=new MediaRecorder(stream, mime?{mimeType:mime,videoBitsPerSecond:2500000}:undefined);
+    recorder.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    recorder.onstop=()=>{
+      clearTimeout(stopT); blob=new Blob(chunks,{type:recorder.mimeType||mime||"video/mp4"});
+      review.src=URL.createObjectURL(blob); review.hidden=false; live.hidden=true; $("v-guide").hidden=true; review.play().catch(()=>{});
+      $("v-rec-row").hidden=true; $("v-done-row").hidden=false; $("v-rec").innerHTML='<span class="dot"></span> צילום';
+      say("צפו בסרטון. אם הוא טוב, שמרו אותו.");
+    };
+    recorder.start(); $("v-rec").disabled=false; $("v-rec").innerHTML='<span class="dot"></span> עצירה';
+    say("מצלם. סמנו עכשיו ולחצו עצירה כשסיימתם.");
+    stopT=setTimeout(()=>{ if(recorder.state==="recording") recorder.stop(); },8000);
+  }
+  function reset(){ if(review.src) URL.revokeObjectURL(review.src); review.removeAttribute("src"); review.hidden=true; live.hidden=false; $("v-guide").hidden=false; $("v-rec-row").hidden=false; $("v-done-row").hidden=true; blob=null; }
+  $("v-redo").onclick=()=>{ reset(); say("מוכנים לצילום חוזר."); };
+  $("v-save").onclick=async()=>{
+    if(!blob) return;
+    const word=$("v-name").value.trim(); const file=new File([blob],word+"."+ext,{type:blob.type});
+    let saved=false;
+    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:word}); saved=true; } }catch(e){ if(e&&e.name==="AbortError"){ say("השמירה בוטלה. אפשר לנסות שוב.",true); return; } }
+    if(!saved){ const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+    const d=doneList(); if(!d.includes(word)){ d.push(word); try{ localStorage.setItem(doneKey,JSON.stringify(d)); }catch{} }
+    showDone(); reset(); $("v-name").value=""; say(`"${word}" נשמר. אפשר לצלם את המילה הבאה.`);
+  };
+})();
 requestAnimationFrame(loop);
 </script>
 </body>
