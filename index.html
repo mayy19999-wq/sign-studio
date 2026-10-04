@@ -207,8 +207,8 @@ const browL=makeBrow(0.12), browR=makeBrow(-0.12);
 const mouth=new THREE.Mesh(new THREE.SphereGeometry(0.09,20,12),mats.mouth); mouth.position.set(0,-0.16,0.28); head.add(mouth);
 
 // arms
-const arm={L:{up:new Limb(0.11,mats.shirt),lo:new Limb(0.095,mats.shirt),sh:ball(0.12,mats.shirt),el:ball(0.1,mats.shirt)},
-           R:{up:new Limb(0.11,mats.shirt),lo:new Limb(0.095,mats.shirt),sh:ball(0.12,mats.shirt),el:ball(0.1,mats.shirt)}};
+const arm={L:{up:new Limb(0.11,mats.shirt),lo:new Limb(0.095,mats.shirt),sh:ball(0.105,mats.shirt),el:ball(0.1,mats.shirt)},
+           R:{up:new Limb(0.11,mats.shirt),lo:new Limb(0.095,mats.shirt),sh:ball(0.105,mats.shirt),el:ball(0.1,mats.shirt)}};
 // hands
 const HB=[[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[0,5],[5,9],[9,13],[13,17],[0,17]];
 function makeHand(){
@@ -255,7 +255,11 @@ function applyFrame(F){
 
 function resize(){
   const r=canvas.parentElement.getBoundingClientRect();
-  renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix();
+  renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height);
+  // fit the signing space (head to waist, elbow to elbow) to whatever shape the stage has
+  const tn=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), cy=-0.22, H=1.32, W=1.28;
+  const d=Math.max(H/tn, W/(tn*camera.aspect))*1.02;
+  camera.position.set(0,cy+0.08,d); camera.lookAt(0,cy,0); camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(canvas.parentElement); resize();
 
