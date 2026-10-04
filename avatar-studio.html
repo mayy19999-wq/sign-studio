@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>סטודיו סימנים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Secular+One&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a studio stage (the avatar) beside a control panel with three tabs — record, library, translate. Stacks on narrow screens. */
+:root{
+  --bg:#EDF1F2; --surface:#FFFFFF; --stage:#D9E3E6; --ink:#14212A; --muted:#5A6A74;
+  --line:#CBD6DA; --accent:#0D7472; --accent-ink:#FFFFFF; --rec:#C93C3C; --ok:#2E7D4F; --warn:#A86A12;
+  --skin:#D9A57E; --shirt:#1F2E3A; --hair:#2B1D16;
+  --f-display:"Secular One","Arial Hebrew",Arial,sans-serif;
+  --f-body:"IBM Plex Sans Hebrew","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E161B; --surface:#152028; --stage:#3A5562; --ink:#E4ECEF; --muted:#8EA0A9;
+  --line:#26363F; --accent:#3BB3AA; --accent-ink:#06201E; --rec:#E8615E; --ok:#5CC48A; --warn:#E0A54A;
+  --skin:#D9A57E; --shirt:#0B1218; --hair:#2B1D16; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E161B; --surface:#152028; --stage:#3A5562; --ink:#E4ECEF; --muted:#8EA0A9;
+  --line:#26363F; --accent:#3BB3AA; --accent-ink:#06201E; --rec:#E8615E; --ok:#5CC48A; --warn:#E0A54A;
+  --skin:#D9A57E; --shirt:#0B1218; --hair:#2B1D16; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding:16px;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font:400 30px/1.1 var(--f-display);margin:0;letter-spacing:.01em}
+.privacy{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.privacy b{color:var(--ok);font-weight:600}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:860px){main{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0;display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:14px 8px 11px;font:600 15px var(--f-body);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.pane{padding:20px;display:flex;flex-direction:column;gap:16px}
+h2{font:400 20px/1.2 var(--f-display);margin:0}
+p{margin:0}
+.hint{color:var(--muted);font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button.btn{font:600 15px var(--f-body);border-radius:10px;padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+button.btn:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.rec{background:var(--rec);color:#fff;border-color:var(--rec)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+.dot{width:10px;height:10px;border-radius:50%;background:currentColor;display:inline-block}
+input[type=text]{font:16px var(--f-body);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-width:0;flex:1}
+label.chk{display:inline-flex;gap:8px;align-items:center;font-size:14px;color:var(--muted);cursor:pointer}
+.steps{margin:0;padding:0 18px 0 0;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.steps li::marker{color:var(--accent);font-family:var(--f-mono)}
+.status{font-size:14px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.status.err{border-color:var(--rec);color:var(--rec)}
+/* Stage */
+.stage{position:relative;background:var(--stage);border-radius:14px;overflow:hidden;aspect-ratio:4/5;max-width:100%}
+.stage canvas{display:block;width:100%;height:100%}
+.chips{position:absolute;top:10px;inset-inline:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface);color:var(--muted);border:1px solid var(--line);display:inline-flex;gap:5px;align-items:center}
+.chip.on{color:var(--ok);border-color:var(--ok)}
+.chip .dot{width:7px;height:7px}
+.badge{position:absolute;bottom:12px;inset-inline-start:12px;font:600 13px var(--f-body);padding:5px 11px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.badge.rec{background:var(--rec);color:#fff;border-color:var(--rec)}
+.count{position:absolute;inset:0;display:grid;place-items:center;font:400 120px var(--f-display);color:var(--ink);opacity:.85;pointer-events:none}
+.pip{position:absolute;bottom:12px;inset-inline-end:12px;width:28%;border-radius:10px;overflow:hidden;border:2px solid var(--surface)}
+.pip video{width:100%;display:block;transform:scaleX(-1)}
+.pip.hiddenpip{width:2px;height:2px;opacity:0;border:0}
+.caption{min-height:52px;font-size:20px;line-height:1.5;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px 8px}
+.caption .w{color:var(--muted)}
+.caption .w.known{color:var(--ink);font-weight:600;border-bottom:2px solid var(--accent)}
+.caption .w.active{background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:0 6px;border-bottom-color:transparent}
+.caption .empty{color:var(--muted);font-size:15px}
+/* Library */
+.letters{display:flex;flex-wrap:wrap;gap:6px}
+.letters button{min-width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:600 17px var(--f-body);cursor:pointer}
+.letters button.done{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vbox{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:60vh;max-width:100%;margin-inline:auto}
+.vbox video{width:100%;height:100%;object-fit:cover;display:block}
+#v-live{transform:scaleX(-1)}
+.vguide{position:absolute;inset:0;pointer-events:none}
+.vguide .g-head{position:absolute;left:38%;right:38%;top:7%;height:22%;border:2px dashed rgba(255,255,255,.75);border-radius:50% 50% 45% 45%}
+.vguide .g-waist{position:absolute;left:8%;right:8%;top:84%;border-top:2px dashed rgba(255,255,255,.75);color:rgba(255,255,255,.85);font-size:12px;padding-top:2px;text-align:center}
+.vcount{position:absolute;inset:0;display:grid;place-items:center;font:400 110px var(--f-display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lib li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
+.lib li:first-child{border-top:0}
+.lib .name{flex:1;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.lib .meta{font:500 12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.lib .ex{font:500 11px var(--f-body);color:var(--warn);border:1px solid var(--warn);border-radius:999px;padding:1px 7px;margin-inline-start:6px}
+.icon{background:none;border:1px solid transparent;border-radius:8px;padding:6px 8px;color:var(--muted);cursor:pointer;font:600 13px var(--f-body)}
+.icon:hover{border-color:var(--line);color:var(--ink)}
+.icon.danger{color:var(--rec)}
+.empty-lib{padding:18px;color:var(--muted);font-size:14px;text-align:center}
+.mic.listening{background:var(--rec);border-color:var(--rec);color:#fff}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>סטודיו סימנים</h1>
+    <div class="privacy"><b>●</b> הווידאו לא נשמר. נשמרות רק נקודות תנועה, ורק במחשב הזה.</div>
+  </header>
+
+  <main>
+    <section class="panel" aria-label="לוח בקרה">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-rec" aria-selected="true" data-pane="pane-rec">הקלטת סימן</button>
+        <button class="tab" role="tab" id="tab-lib" aria-selected="false" data-pane="pane-lib">המאגר</button>
+        <button class="tab" role="tab" id="tab-vid" aria-selected="false" data-pane="pane-vid">צילום סרטון</button>
+        <button class="tab" role="tab" id="tab-tr" aria-selected="false" data-pane="pane-tr">תרגום</button>
+      </div>
+
+      <!-- Record -->
+      <div class="pane" id="pane-rec" role="tabpanel">
+        <h2>מקליטים סימן אחד בכל פעם</h2>
+        <ol class="steps">
+          <li>שבי מול המצלמה, כך שרואים את הראש, הכתפיים ושתי הידיים.</li>
+          <li>כתבי את המילה או הביטוי שהסימן מייצג.</li>
+          <li>לחצי "הקלטה", סמני אחרי הספירה, ולחצי "עצירה" (או רווח).</li>
+          <li>בדקי את האווטאר ושמרי.</li>
+        </ol>
+        <div class="row">
+          <button class="btn primary" id="btn-cam">הפעלת מצלמה</button>
+          <label class="btn" for="file-video" style="cursor:pointer">העלאת סרטון</label>
+          <input type="file" id="file-video" accept="video/*" hidden>
+          <button class="btn" id="btn-flip" type="button" hidden>החלפת מצלמה</button>
+          <label class="chk"><input type="checkbox" id="chk-pip"> הצגת המצלמה על המסך</label>
+        </div>
+        <div class="row">
+          <input type="text" id="sign-name" placeholder="למשל: שלום, תודה, איפה השירותים">
+        </div>
+        <details>
+          <summary class="hint" style="cursor:pointer">אותיות לאיות (מאפשרות לאיית כל מילה שאין לה סימן)</summary>
+          <p class="hint" style="margin-block:8px">לחצי על אות כדי לבחור אותה כשם הסימן, והקליטי את האות באצבעות. אות שכבר הוקלטה מסומנת בצבע.</p>
+          <div class="letters" id="letters"></div>
+        </details>
+        <div class="row" id="rec-controls">
+          <button class="btn rec" id="btn-rec" disabled><span class="dot"></span> הקלטה</button>
+        </div>
+        <div class="row" id="review-controls" hidden>
+          <button class="btn primary" id="btn-save">שמירה במאגר</button>
+          <button class="btn" id="btn-redo">הקלטה מחדש</button>
+          <button class="btn" id="btn-discard">ביטול</button>
+        </div>
+        <div class="status" id="rec-status">המצלמה כבויה. האווטאר מציג תנוחת מנוחה.</div>
+      </div>
+
+      <!-- Library -->
+      <div class="pane" id="pane-lib" role="tabpanel" hidden>
+        <h2>המאגר שלך</h2>
+        <p class="hint">כל סימן שמור כאן כנתוני תנועה בלבד. לחיצה על "הצגה" מפעילה אותו על האווטאר.</p>
+        <ul class="lib" id="lib"></ul>
+        <div class="row">
+          <button class="btn" id="btn-export">ייצוא המאגר לקובץ</button>
+          <label class="btn" for="file-import" style="cursor:pointer">ייבוא מקובץ</label>
+          <input type="file" id="file-import" accept="application/json,.json" hidden>
+        </div>
+        <p class="hint">כדאי לייצא מדי פעם כגיבוי. המאגר נשמר בדפדפן, וניקוי נתוני הדפדפן ימחק אותו.</p>
+      </div>
+
+      <!-- Video clips of a real signer -->
+      <div class="pane" id="pane-vid" role="tabpanel" hidden>
+        <h2>סרטון של סימן אחד</h2>
+        <ol class="steps">
+          <li>רקע חלק, חולצה כהה, הטלפון יציב. הראש והמותניים בתוך המסגרת המקווקוות.</li>
+          <li>כתבו את המילה, לחצו "צילום", ואחרי הספירה סמנו.</li>
+          <li>התחילו וסיימו כל סימן עם הידיים נחות מול המותניים.</li>
+          <li>שמרו את הקובץ ושלחו אותו ל-Claude. שם הקובץ הוא המילה.</li>
+        </ol>
+        <div class="row">
+          <button class="btn primary" id="v-cam" type="button">הפעלת מצלמה</button>
+          <button class="btn" id="v-flip" type="button" hidden>החלפת מצלמה</button>
+        </div>
+        <div class="vbox" id="v-box" hidden>
+          <video id="v-live" playsinline muted></video>
+          <video id="v-review" playsinline controls hidden></video>
+          <div class="vguide" id="v-guide"><span class="g-head"></span><span class="g-waist">מותניים</span></div>
+          <div class="vcount" id="v-count" hidden></div>
+        </div>
+        <div class="row"><input type="text" id="v-name" placeholder="המילה שמסומנת, למשל: תודה"></div>
+        <div class="row" id="v-rec-row">
+          <button class="btn rec" id="v-rec" type="button" disabled><span class="dot"></span> צילום</button>
+        </div>
+        <div class="row" id="v-done-row" hidden>
+          <button class="btn primary" id="v-save" type="button">שמירת הקובץ</button>
+          <button class="btn" id="v-redo" type="button">צילום חוזר</button>
+        </div>
+        <div class="status" id="v-status">הסרטונים לא נשמרים באתר. אחרי "שמירת הקובץ" הם נשמרים אצלך בטלפון, ומשם שולחים אותם.</div>
+        <p class="hint" id="v-done-list"></p>
+      </div>
+
+      <!-- Translate -->
+      <div class="pane" id="pane-tr" role="tabpanel" hidden>
+        <h2>מדברים, והאווטאר מסמן</h2>
+        <p class="hint">מילים שיש להן סימן במאגר יסומנו. השאר יופיעו ככתובית בלבד.</p>
+        <div class="row">
+          <button class="btn mic" id="btn-mic"><span class="dot"></span> הקשבה</button>
+          <span class="hint" id="mic-note"></span>
+        </div>
+        <div class="row">
+          <input type="text" id="tr-text" placeholder="או הקלידי משפט כאן">
+          <button class="btn primary" id="btn-sign">סימון</button>
+        </div>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="stage" id="stage">
+        <canvas id="cv" aria-label="אווטאר מסמן"></canvas>
+        <div class="chips">
+          <span class="chip" id="c-body"><span class="dot"></span>גוף</span>
+          <span class="chip" id="c-rh"><span class="dot"></span>יד ימין</span>
+          <span class="chip" id="c-lh"><span class="dot"></span>יד שמאל</span>
+          <span class="chip" id="c-face"><span class="dot"></span>פנים</span>
+        </div>
+        <div class="count" id="count" hidden></div>
+        <div class="badge" id="badge">מנוחה</div>
+        <div class="pip hiddenpip" id="pip"><video id="video" playsinline muted></video></div>
+      </div>
+      <div class="caption" id="caption"><span class="empty">כאן תופיע הכתובית של מה שנאמר.</span></div>
+    </section>
+  </main>
+  <footer><a href="./" style="color:var(--accent)">למתרגם</a> · זיהוי תנועה: MediaPipe של Google, רץ מקומית בדפדפן. זיהוי דיבור: Chrome.</footer>
+</div>
+
+<script>
+/* Runs even if the 3D/AI part fails to load, so tabs always work and errors are visible. */
+(function(){
+  function showErr(msg){ var s=document.getElementById("rec-status"); if(s){ s.textContent="שגיאה טכנית: "+msg+" (שלחי לי צילום מסך של ההודעה הזו)"; s.classList.add("err"); } }
+  window.addEventListener("error",function(e){ showErr(e.message||String(e.error)); });
+  window.addEventListener("unhandledrejection",function(e){ var r=e.reason; showErr((r&&r.message)||String(r)); });
+  var tabs=document.querySelectorAll(".tab");
+  tabs.forEach(function(t){ t.addEventListener("click",function(){
+    tabs.forEach(function(x){ x.setAttribute("aria-selected",x===t?"true":"false"); document.getElementById(x.dataset.pane).hidden=(x!==t); });
+    document.dispatchEvent(new CustomEvent("tabchange",{detail:t.id}));
+  }); });
+})();
+</script>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const MODELS = {
+  pose: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+  hand: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+  face: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+};
+const $ = id => document.getElementById(id);
+const FACE_KEYS = ["browDownLeft","browDownRight","browInnerUp","browOuterUpLeft","browOuterUpRight","eyeBlinkLeft","eyeBlinkRight","eyeWideLeft","eyeWideRight","jawOpen","mouthSmileLeft","mouthSmileRight","mouthPucker","cheekPuff","mouthFrownLeft","mouthFrownRight"];
+const FI = Object.fromEntries(FACE_KEYS.map((k,i)=>[k,i]));
+const Z_POSE = 0.35, Z_HAND = 0.9;
+const r3 = v => Math.round(v*1000)/1000;
+
+/* ---------- vector helpers ---------- */
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s], len=a=>Math.hypot(a[0],a[1],a[2]);
+const norm=a=>{const l=len(a)||1;return mul(a,1/l)};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const lerpArr=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t));
+
+/* ---------- synthetic hand (rest pose + demo) ---------- */
+function synthHand(wrist, u, s, curlVec, curl=0.25, size=1){
+  u=norm(u); s=norm(s); curlVec=norm(curlVec);
+  const pts=new Array(21);
+  pts[0]=wrist;
+  const fingers=[[5,0.075],[9,0.025],[13,-0.025],[17,-0.07]];
+  const segs=[0.1,0.065,0.055];
+  for(const [base,off] of fingers){
+    let p=add(wrist, add(mul(u,0.21*size), mul(s,off*size*1.25)));
+    pts[base]=p; let d=u;
+    for(let j=0;j<3;j++){
+      d=norm(add(mul(d,Math.cos(curl)), mul(curlVec,Math.sin(curl))));
+      p=add(p, mul(d,segs[j]*size*(base===17?0.8:1)));
+      pts[base+1+j]=p;
+    }
+  }
+  let p=add(wrist, add(mul(u,0.05*size), mul(s,0.06*size))); pts[1]=p;
+  let d=norm(add(u,mul(s,1.1)));
+  for(let j=0;j<3;j++){ d=norm(add(mul(d,Math.cos(curl*0.6)), mul(curlVec,Math.sin(curl*0.6)))); p=add(p,mul(d,[0.07,0.06,0.05][j]*size)); pts[2+j]=p; }
+  return pts.flat().map(r3);
+}
+function restFrame(breath=0){
+  const b=breath*0.01;
+  // neutral interpreter stance: hands resting together in front of the waist, always in view
+  const p=[[0,0.62,0.25],[0.5,b,0],[-0.5,b,0],[0.62,-0.76+b,0.08],[-0.62,-0.76+b,0.08],[0.27,-1.08+b,0.42],[-0.27,-1.08+b,0.42]];
+  return {p:p.flat(), l:synthHand(p[5],[-1,-0.05,0.15],[0,0.6,1],[0,-1,-0.2],0.4), r:synthHand(p[6],[1,-0.05,0.15],[0,0.6,1],[0,-1,-0.2],0.4), f:new Array(FACE_KEYS.length).fill(0), h:[0,0,0]};
+}
+function demoWave(){
+  const frames=[];
+  for(let i=0;i<54;i++){
+    const t=i/30, w=Math.sin(t*Math.PI*2*1.6);
+    const ramp=Math.min(1,i/8);
+    const rest=restFrame();
+    const p=[[0,0.62,0.25],[0.5,0,0],[-0.5,0.03,0],[0.62,-0.76,0.08],[-0.82,-0.5,0.12],[0.27,-1.08,0.42],[-0.78+w*0.1,0.22,0.24]];
+    const pr=rest.p; const pf=p.flat().map((v,k)=>r3(lerp(pr[k],v,ramp)));
+    const wrist=[pf[18],pf[19],pf[20]];
+    const ang=w*0.35, u=[Math.sin(ang),Math.cos(ang),0], s=[-Math.cos(ang),Math.sin(ang),0];
+    const f=new Array(FACE_KEYS.length).fill(0); f[FI.mouthSmileLeft]=0.6; f[FI.mouthSmileRight]=0.6; f[FI.browInnerUp]=0.3;
+    frames.push({t:Math.round(t*1000), p:pf, l:rest.l, r:synthHand(wrist,u,s,[0,0,1],0.08), f, h:[0,w*0.08,0]});
+  }
+  return frames;
+}
+
+/* ---------- three.js avatar ---------- */
+const canvas=$("cv");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(28,4/5,0.1,50);
+camera.position.set(0,-0.12,5.3); camera.lookAt(0,-0.22,0);
+scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));
+const key=new THREE.DirectionalLight(0xffffff,1.7); key.position.set(-2,3,4); scene.add(key);
+const fill=new THREE.DirectionalLight(0xffffff,0.9); fill.position.set(1.5,0.5,5); scene.add(fill);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* illustrated look: flat toon shading + dark outlines, so finger shapes read clearly on a small screen */
+const toonGrad=(()=>{const d=new Uint8Array([110,185,255]);const tx=new THREE.DataTexture(d,3,1,THREE.RedFormat);tx.minFilter=tx.magFilter=THREE.NearestFilter;tx.needsUpdate=true;return tx})();
+const toon=(o={})=>new THREE.MeshToonMaterial({gradientMap:toonGrad,...o});
+const mats={
+  skin:toon(), skinDark:toon(), shirt:toon(), hair:toon(),
+  white:toon({color:0xffffff}), pupil:toon({color:0x1b130f}), mouth:toon({color:0x7a2f2f}),
+};
+mats.palm=toon({side:THREE.DoubleSide});
+const OUT_VS="uniform float th; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vec3 n=normalize(normalMatrix*normal); mv.xyz+=n*th; gl_Position=projectionMatrix*mv; }";
+const OUT_FS="uniform vec3 col; void main(){ gl_FragColor=vec4(col,1.0); }";
+const outMat=(hex,th)=>new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{th:{value:th},col:{value:new THREE.Color(hex)}},vertexShader:OUT_VS,fragmentShader:OUT_FS});
+const OUT={skin:outMat(0x4a2a18,0.014), hand:outMat(0x3a2012,0.009), dark:outMat(0x05080b,0.016)};
+const outline=(m,o)=>{ m.add(new THREE.Mesh(m.geometry,o)); return m; };
+function applyTheme(){
+  scene.background=new THREE.Color(css("--stage"));
+  const skin=new THREE.Color(css("--skin"));
+  mats.skin.color=skin; mats.palm.color=skin; mats.skinDark.color=skin.clone().multiplyScalar(0.88);
+  mats.shirt.color=new THREE.Color(css("--shirt")); mats.hair.color=new THREE.Color(css("--hair"));
+  mats.brow=mats.hair;
+}
+applyTheme();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const UP=new THREE.Vector3(0,1,0);
+class Limb{
+  constructor(r,mat,o){this.m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,14),mat);if(o) outline(this.m,o);scene.add(this.m);this.v=new THREE.Vector3();}
+  set(a,b){
+    const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b);
+    this.v.subVectors(B,A); const L=this.v.length()||1e-4;
+    this.m.position.addVectors(A,B).multiplyScalar(0.5);
+    this.m.scale.set(1,L,1);
+    this.m.quaternion.setFromUnitVectors(UP,this.v.normalize());
+  }
+}
+const ball=(r,mat,o)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,18,14),mat);if(o) outline(m,o);scene.add(m);return m};
+
+// torso, neck
+const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.47,1.55,32),mats.shirt);
+torso.scale.set(1,1,0.5); torso.position.set(0,-0.82,-0.05); outline(torso,OUT.dark); scene.add(torso);
+const shoulders=new THREE.Mesh(new THREE.CapsuleGeometry(0.15,0.72,8,20),mats.shirt);
+shoulders.rotation.z=Math.PI/2; shoulders.scale.set(1,1,0.75); shoulders.position.set(0,-0.06,-0.05); outline(shoulders,OUT.dark); scene.add(shoulders);
+const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.15,0.3,16),mats.skin); neck.position.set(0,0.2,0); outline(neck,OUT.skin); scene.add(neck);
+
+// head
+const head=new THREE.Group(); head.position.set(0,0.62,0); scene.add(head);
+const skull=new THREE.Mesh(new THREE.SphereGeometry(0.34,32,24),mats.skin); skull.scale.set(0.92,1.08,0.95); outline(skull,OUT.skin); head.add(skull);
+const hair=new THREE.Mesh(new THREE.SphereGeometry(0.355,32,20,0,Math.PI*2,0,Math.PI*0.5),mats.hair);
+hair.scale.set(0.95,1.1,1); hair.position.set(0,0.035,-0.02); hair.rotation.x=-0.25; outline(hair,OUT.dark); head.add(hair);
+const nose=new THREE.Mesh(new THREE.SphereGeometry(0.045,14,10),mats.skinDark); nose.position.set(0,-0.03,0.32); head.add(nose);
+function makeEye(x){
+  const g=new THREE.Group(); g.position.set(x,0.06,0.27);
+  const w=new THREE.Mesh(new THREE.SphereGeometry(0.066,16,12),mats.white); w.scale.set(1,0.8,0.55); g.add(w);
+  const p=new THREE.Mesh(new THREE.SphereGeometry(0.034,12,10),mats.pupil); p.position.z=0.03; g.add(p);
+  head.add(g); return g;
+}
+const eyeL=makeEye(0.12), eyeR=makeEye(-0.12);
+function makeBrow(x){const b=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.038,0.035),mats.hair);b.position.set(x,0.16,0.29);head.add(b);return b}
+const browL=makeBrow(0.12), browR=makeBrow(-0.12);
+const mouth=new THREE.Mesh(new THREE.SphereGeometry(0.09,20,12),mats.mouth); mouth.position.set(0,-0.16,0.28); head.add(mouth);
+
+// arms
+const mkArm=()=>({up:new Limb(0.11,mats.shirt,OUT.dark),lo:new Limb(0.095,mats.shirt,OUT.dark),sh:ball(0.105,mats.shirt,OUT.dark),el:ball(0.1,mats.shirt,OUT.dark)});
+const arm={L:mkArm(),R:mkArm()};
+// hands
+const HB=[[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[0,5],[5,9],[9,13],[13,17],[0,17]];
+function makeHand(){
+  const joints=[...Array(21)].map((_,i)=>ball(i===0?0.058:(i%4===0&&i>0?0.03:0.034),mats.skin,OUT.hand));
+  const bones=HB.map(([a,b])=>new Limb(b===a+1?0.031:0.036,mats.skin,OUT.hand));
+  const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.BufferAttribute(new Float32Array(4*9),3));
+  const palm=new THREE.Mesh(geo,mats.palm); scene.add(palm);
+  return {joints,bones,palm,geo};
+}
+const hand={L:makeHand(),R:makeHand()};
+const HAND_SCALE=1.3;
+function setHand(h,pts){
+  const w0=[pts[0],pts[1],pts[2]];
+  const P=i=>[w0[0]+(pts[i*3]-w0[0])*HAND_SCALE, w0[1]+(pts[i*3+1]-w0[1])*HAND_SCALE, w0[2]+(pts[i*3+2]-w0[2])*HAND_SCALE];
+  for(let i=0;i<21;i++){const q=P(i);h.joints[i].position.set(q[0],q[1],q[2]);}
+  HB.forEach(([a,b],k)=>h.bones[k].set(P(a),P(b)));
+  const tri=[[0,1,5],[0,5,9],[0,9,13],[0,13,17]]; const arr=h.geo.attributes.position.array; let o=0;
+  for(const t of tri) for(const i of t){const q=P(i);arr[o++]=q[0];arr[o++]=q[1];arr[o++]=q[2];}
+  h.geo.attributes.position.needsUpdate=true; h.geo.computeVertexNormals(); h.geo.computeBoundingSphere();
+}
+function applyFrame(F){
+  const p=i=>[F.p[i*3],F.p[i*3+1],F.p[i*3+2]];
+  const sides=[["L",1,3,5,F.l],["R",2,4,6,F.r]];
+  for(const [S,si,ei,wi,hp] of sides){
+    const a=arm[S], sh=p(si), el=p(ei), wr=hp?[hp[0],hp[1],hp[2]]:p(wi);
+    a.sh.position.set(...sh); a.el.position.set(...el); a.up.set(sh,el); a.lo.set(el,wr);
+    setHand(hand[S], hp || synthHand(wr, sub(wr,el), [0,0,1], S==="L"?[-1,0,0]:[1,0,0], 0.4));
+  }
+  const f=F.f||[];
+  const g=k=>f[FI[k]]||0;
+  eyeL.scale.y=Math.max(0.08,1-g("eyeBlinkLeft")+g("eyeWideLeft")*0.4);
+  eyeR.scale.y=Math.max(0.08,1-g("eyeBlinkRight")+g("eyeWideRight")*0.4);
+  browL.position.y=0.16+g("browInnerUp")*0.05+g("browOuterUpLeft")*0.04-g("browDownLeft")*0.04;
+  browR.position.y=0.16+g("browInnerUp")*0.05+g("browOuterUpRight")*0.04-g("browDownRight")*0.04;
+  browL.rotation.z=(g("browInnerUp")-g("browOuterUpLeft"))*0.35-g("browDownLeft")*0.3;
+  browR.rotation.z=-(g("browInnerUp")-g("browOuterUpRight"))*0.35+g("browDownRight")*0.3;
+  const smile=(g("mouthSmileLeft")+g("mouthSmileRight"))/2, frown=(g("mouthFrownLeft")+g("mouthFrownRight"))/2;
+  mouth.scale.set(1+smile*0.45-g("mouthPucker")*0.45, 0.14+g("jawOpen")*1.1+frown*0.05, 0.35);
+  mouth.position.y=-0.16-g("jawOpen")*0.04;
+  skull.scale.x=0.92+g("cheekPuff")*0.08;
+  const h=F.h||[0,0,0];
+  head.rotation.set(h[0],h[1],h[2]);
+}
+
+function resize(){
+  const r=canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height);
+  // fit the signing space (head to waist, elbow to elbow) to whatever shape the stage has
+  const tn=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), cy=-0.2, H=1.36, W=1.48;
+  const d=Math.max(H/tn, W/(tn*camera.aspect))*1.02;
+  camera.position.set(0,cy+0.08,d); camera.lookAt(0,cy,0); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas.parentElement); resize();
+
+/* ---------- frame interpolation & playback ---------- */
+function lerpFrame(a,b,t){
+  return {p:lerpArr(a.p,b.p,t), l:(a.l&&b.l)?lerpArr(a.l,b.l,t):(a.l||b.l), r:(a.r&&b.r)?lerpArr(a.r,b.r,t):(a.r||b.r),
+          f:lerpArr(a.f||[],b.f||a.f||[],t), h:lerpArr(a.h||[0,0,0],b.h||[0,0,0],t)};
+}
+function fillGaps(frames){
+  const out=frames.map(f=>({...f, f:f.f||new Array(FACE_KEYS.length).fill(0), h:f.h||[0,0,0]}));
+  for(const k of ["l","r"]){
+    let last=null; for(const f of out){ if(f[k]) last=f[k]; else if(last) f[k]=last; }
+    const first=out.find(f=>f[k]); if(first){ for(const f of out){ if(f[k]) break; f[k]=first[k]; } }
+  }
+  return out;
+}
+let player=null; // {frames, marks:[{t,idx}], start, loop, onEnd}
+function buildSequence(signs){
+  const frames=[], marks=[]; let t=0;
+  const rest={...restFrame(), t:0}; frames.push(rest); t=320;
+  signs.forEach((s,i)=>{
+    const fr=fillGaps(s.frames); const t0=fr[0].t;
+    marks.push({t, idx:s.idx??i});
+    const sc=s.scale||1;
+    for(const f of fr) frames.push({...f, t:t+(f.t-t0)*sc});
+    t=frames[frames.length-1].t+(s.gap??260);
+  });
+  frames.push({...restFrame(), t:t+120});
+  return {frames, marks};
+}
+function frameAt(seq, ms){
+  const fr=seq.frames; if(ms<=fr[0].t) return fr[0];
+  for(let i=1;i<fr.length;i++) if(fr[i].t>=ms){ const a=fr[i-1],b=fr[i]; return lerpFrame(a,b,(ms-a.t)/Math.max(1,b.t-a.t)); }
+  return fr[fr.length-1];
+}
+function play(signs,{loop=false,onMark=null,onEnd=null,label="מסמן"}={}){
+  const seq=buildSequence(signs);
+  player={...seq,start:performance.now(),loop,onMark,onEnd,lastMark:-1,label};
+}
+function stopPlay(){ player=null; }
+
+/* ---------- storage ---------- */
+const KEY="signstudio.library.v1";
+let library=[];
+function loadLib(){
+  try{ library=JSON.parse(localStorage.getItem(KEY)||"null")||null; }catch{ library=null; }
+  if(Array.isArray(library)) library=library.filter(s=>s&&s.name&&Array.isArray(s.frames)&&s.frames.length);
+  if(!library||!library.length){ library=[{id:"demo-wave",name:"נפנוף לדוגמה",example:true,created:Date.now(),frames:demoWave()}]; }
+}
+function saveLib(){
+  try{ localStorage.setItem(KEY,JSON.stringify(library)); return true; }
+  catch(e){ setStatus("המאגר מלא בדפדפן. ייצאי אותו לקובץ ומחקי סימנים ישנים כדי לפנות מקום.",true); return false; }
+}
+
+/* ---------- UI: tabs ---------- */
+document.addEventListener("tabchange",e=>{ if(e.detail==="tab-lib") renderLib(); });
+const recStatus=$("rec-status");
+function setStatus(msg,err=false){ recStatus.textContent=msg; recStatus.classList.toggle("err",err); }
+const badge=$("badge");
+function setBadge(txt,rec=false){ badge.textContent=txt; badge.classList.toggle("rec",rec); }
+function setChip(id,on){ $(id).classList.toggle("on",!!on); }
+
+/* ---------- library UI ---------- */
+function renderLib(){
+  const ul=$("lib"); ul.innerHTML="";
+  if(!library.length){ ul.innerHTML='<li class="empty-lib">המאגר ריק. הקליטי סימן ראשון בלשונית "הקלטת סימן".</li>'; return; }
+  for(const s of library){
+    const li=document.createElement("li");
+    const name=document.createElement("span"); name.className="name"; name.textContent=s.name;
+    if(s.example){const e=document.createElement("span");e.className="ex";e.textContent="דוגמה, לא סימן אמיתי";name.append(e);}
+    const dur=((s.frames.at(-1).t-s.frames[0].t)/1000).toFixed(1);
+    const meta=document.createElement("span"); meta.className="meta"; meta.textContent=dur+" שנ׳";
+    const pl=document.createElement("button"); pl.className="icon"; pl.textContent="הצגה";
+    pl.onclick=()=>{ if(camOn) stopCam(); play([s],{label:s.name}); };
+    const del=document.createElement("button"); del.className="icon danger"; del.textContent="מחיקה";
+    del.onclick=()=>{
+      if(del.dataset.armed){ library=library.filter(x=>x!==s); saveLib(); renderLib(); return; }
+      del.dataset.armed="1"; del.textContent="למחוק בטוח?"; setTimeout(()=>{ if(del.isConnected){delete del.dataset.armed; del.textContent="מחיקה";} },3000);
+    };
+    li.append(name,meta,pl,del); ul.append(li);
+  }
+}
+$("btn-export").onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:"sign-studio",version:1,signs:library.filter(s=>!s.example)})],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="מאגר-סימנים.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+$("file-import").onchange=async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const data=JSON.parse(await file.text()); const ids=new Set(library.map(s=>s.id)); let n=0;
+    for(const s of (data.signs||[])) if(s.id&&s.name&&Array.isArray(s.frames)&&!ids.has(s.id)){ library.push(s); n++; }
+    saveLib(); renderLib(); alertInline(`נוספו ${n} סימנים מהקובץ.`);
+  }catch{ alertInline("לא הצלחתי לקרוא את הקובץ. ודאי שזה קובץ שיוצא מהסטודיו."); }
+  e.target.value="";
+};
+function alertInline(msg){ const p=document.querySelector("#pane-lib .hint:last-child"); p.textContent=msg; }
+
+/* ---------- MediaPipe ---------- */
+let lm=null; // {pose,hand,face}
+async function loadModels(){
+  if(lm) return lm;
+  setStatus("טוען את מודלי זיהוי התנועה (פעם ראשונה לוקח כחצי דקה)...");
+  const v=await import(MP+"/vision_bundle.mjs");
+  const fs=await v.FilesetResolver.forVisionTasks(MP+"/wasm");
+  const mk=async(Cls,model,extra)=>{
+    try{ return await Cls.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:"GPU"},runningMode:"VIDEO",...extra}); }
+    catch{ return await Cls.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:"CPU"},runningMode:"VIDEO",...extra}); }
+  };
+  lm={
+    pose:await mk(v.PoseLandmarker,MODELS.pose,{numPoses:1}),
+    hand:await mk(v.HandLandmarker,MODELS.hand,{numHands:2,minHandDetectionConfidence:0.5,minTrackingConfidence:0.5}),
+    face:await mk(v.FaceLandmarker,MODELS.face,{numFaces:1,outputFaceBlendshapes:true,outputFacialTransformationMatrixes:true}),
+  };
+  return lm;
+}
+const tmpM=new THREE.Matrix4(), tmpE=new THREE.Euler();
+let lastTs=0;
+function detect(video){
+  let ts=performance.now(); if(ts<=lastTs) ts=lastTs+1; lastTs=ts;
+  const pose=lm.pose.detectForVideo(video,ts), hands=lm.hand.detectForVideo(video,ts);
+  detect.n=(detect.n||0)+1;
+  if(detect.n%2===1||!detect.face) detect.face=lm.face.detectForVideo(video,ts);
+  const face=detect.face;
+  return toFrame(pose,hands,face,video.videoWidth,video.videoHeight);
+}
+function toFrame(pose,hands,face,W,H){
+  const pl=pose.landmarks&&pose.landmarks[0]; if(!pl) return null;
+  const P=i=>[pl[i].x*W,pl[i].y*H,pl[i].z*W];
+  const ls=P(11), rs=P(12);
+  const cx=(ls[0]+rs[0])/2, cy=(ls[1]+rs[1])/2, cz=(ls[2]+rs[2])/2;
+  const sw=Math.hypot(ls[0]-rs[0],ls[1]-rs[1])||1;
+  const N=([x,y,z])=>[(x-cx)/sw, -(y-cy)/sw, -(z-cz)/sw*Z_POSE];
+  const ids=[0,11,12,13,14,15,16]; const pn=ids.map(i=>N(P(i)));
+  const out={p:pn.flat().map(r3), l:null, r:null, f:null, h:null};
+  // assign hands to the nearest pose wrist (15 = person's left, 16 = person's right)
+  const wl=P(15), wr=P(16), cands=[];
+  (hands.landmarks||[]).forEach(h=>{
+    const x=h[0].x*W, y=h[0].y*H;
+    cands.push({h, dl:Math.hypot(x-wl[0],y-wl[1]), dr:Math.hypot(x-wr[0],y-wr[1])});
+  });
+  const pairs=[]; cands.forEach(c=>{pairs.push({c,side:"l",d:c.dl});pairs.push({c,side:"r",d:c.dr});});
+  pairs.sort((a,b)=>a.d-b.d); const used=new Set();
+  for(const pr of pairs){
+    if(out[pr.side]||used.has(pr.c)||pr.d>sw*1.7) continue; used.add(pr.c);
+    const wz=pn[pr.side==="l"?5:6][2];
+    out[pr.side]=pr.c.h.flatMap(q=>[r3((q.x*W-cx)/sw), r3(-(q.y*H-cy)/sw), r3(wz-(q.z*W)/sw*Z_HAND)]);
+  }
+  const bs=face.faceBlendshapes&&face.faceBlendshapes[0];
+  if(bs){
+    const m={}; for(const c of bs.categories) m[c.categoryName]=c.score;
+    out.f=FACE_KEYS.map(k=>r3(m[k]||0));
+    const mx=face.facialTransformationMatrixes&&face.facialTransformationMatrixes[0];
+    if(mx){ tmpM.fromArray(mx.data); tmpE.setFromRotationMatrix(tmpM,"XYZ");
+      const c=v=>r3(Math.max(-0.6,Math.min(0.6,v))); out.h=[c(tmpE.x),c(tmpE.y),c(tmpE.z)]; }
+  }
+  return out;
+}
+let smooth=null;
+function smoothFrame(F){
+  if(!smooth){ smooth=F; return F; }
+  const a=0.42, S=smooth;
+  const mix=(x,y)=>x&&y?x.map((v,i)=>r3(lerp(y[i],v,a))):x;
+  smooth={p:mix(F.p,S.p), l:mix(F.l,S.l), r:mix(F.r,S.r), f:mix(F.f,S.f), h:mix(F.h,S.h)};
+  return smooth;
+}
+
+/* ---------- camera & recording ---------- */
+const video=$("video");
+let processing=false, camOn=false, recording=null, review=null, countdown=false, facing="user", lastVT=-1;
+$("btn-flip").onclick=async()=>{ facing=facing==="user"?"environment":"user"; stopCam(); $("btn-cam").click(); };
+$("chk-pip").onchange=e=>$("pip").classList.toggle("hiddenpip",!e.target.checked);
+$("btn-cam").onclick=async()=>{
+  if(camOn){ stopCam(); return; }
+  try{
+    await loadModels();
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},facingMode:facing,frameRate:{ideal:30}},audio:false});
+    video.srcObject=stream; await video.play(); camOn=true; stopPlay(); review=null; showReview(false);
+    $("btn-cam").textContent="כיבוי מצלמה"; $("btn-rec").disabled=false; $("btn-flip").hidden=false; lastVT=-1; watchFrames();
+    setStatus("המצלמה פועלת. האווטאר מחקה אותך בזמן אמת. כשהידיים והפנים מסומנים בירוק, אפשר להקליט.");
+  }catch(err){
+    setStatus(err&&err.name==="NotAllowedError"?"אין הרשאה למצלמה. אפשרי גישה למצלמה בהגדרות הדפדפן ונסי שוב.":"לא הצלחתי להפעיל את המצלמה או לטעון את המודלים. ודאי שיש חיבור לאינטרנט ושהקובץ נפתח ב-Chrome.",true);
+  }
+};
+function stopCam(){
+  const s=video.srcObject; if(s) s.getTracks().forEach(t=>t.stop());
+  video.srcObject=null; camOn=false; recording=null; smooth=null;
+  $("btn-cam").textContent="הפעלת מצלמה"; $("btn-rec").disabled=true; $("btn-flip").hidden=true; setBadge("מנוחה");
+  ["c-body","c-lh","c-rh","c-face"].forEach(c=>setChip(c,false));
+  setStatus("המצלמה כבויה.");
+}
+function stopCamLoopPreview(){ if(review){ /* keep review data, just let library play */ } }
+$("btn-rec").onclick=()=>{ if(recording) finishRec(); else startCountdown(); };
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space" && camOn && !(e.target instanceof HTMLInputElement)){ e.preventDefault(); $("btn-rec").click(); }
+});
+function startCountdown(){
+  if(countdown) return; countdown=true; review=null; showReview(false); stopPlay();
+  const el=$("count"); let n=3; el.hidden=false; el.textContent=n;
+  const iv=setInterval(()=>{ n--; if(n>0){ el.textContent=n; } else { clearInterval(iv); el.hidden=true; countdown=false; beginRec(); } },700);
+}
+function beginRec(){
+  recording={frames:[],start:performance.now()};
+  $("btn-rec").innerHTML='<span class="dot"></span> עצירה'; setBadge("מקליט",true);
+  setStatus("מקליט. סמני עכשיו, ולחצי עצירה (או רווח) כשסיימת.");
+}
+function finishRec(){
+  const frames=recording?recording.frames:[]; recording=null;
+  $("btn-rec").innerHTML='<span class="dot"></span> הקלטה'; setBadge("בדיקה");
+  enterReview(frames);
+}
+function trim(frames){
+  let a=frames.findIndex(f=>f.l||f.r), b=frames.length-1-[...frames].reverse().findIndex(f=>f.l||f.r);
+  if(a<0) return frames;
+  a=Math.max(0,a-3); b=Math.min(frames.length-1,b+3);
+  const out=frames.slice(a,b+1); const t0=out[0].t; return out.map(f=>({...f,t:f.t-t0}));
+}
+function smoothClip(frames){
+  const keys=["p","l","r","f","h"];
+  return frames.map((f,i)=>{
+    const o={...f};
+    for(const k of keys){
+      if(!f[k]) continue;
+      const nb=[frames[i-2],frames[i-1],f,frames[i+1],frames[i+2]].filter(x=>x&&x[k]);
+      const w=nb.map(x=>x===f?3:(x===frames[i-1]||x===frames[i+1]?2:1)), W=w.reduce((a,b)=>a+b,0);
+      o[k]=f[k].map((_,j)=>r3(nb.reduce((acc,x,n)=>acc+x[k][j]*w[n],0)/W));
+    }
+    return o;
+  });
+}
+function enterReview(frames){
+  frames=smoothClip(trim(frames));
+  if(frames.length<6 || !frames.some(f=>f.l||f.r)){ setStatus("לא זוהו ידיים בהקלטה. ודאי ששתי הידיים בתוך הפריים והתאורה טובה, ונסי שוב.",true); return; }
+  review=frames; showReview(true);
+  const dur=(frames.at(-1).t/1000).toFixed(1);
+  setStatus(`הוקלטו ${dur} שניות. האווטאר מציג את הסימן בלולאה. אם זה נראה טוב, תני שם ושמרי.`);
+  play([{frames}],{loop:true,label:"בדיקה"});
+}
+function showReview(on){ $("review-controls").hidden=!on; $("rec-controls").hidden=on; }
+$("btn-save").onclick=()=>{
+  if(!review||!review.length){ setStatus("אין הקלטה לשמירה. לחצי קודם \"הקלטה\" וסמני.",true); showReview(false); return; }
+  const name=$("sign-name").value.trim();
+  if(!name){ setStatus("חסר שם לסימן. כתבי מה הוא אומר, למשל \"תודה\".",true); $("sign-name").focus(); return; }
+  library=library.filter(s=>!s.example);
+  library.push({id:"s"+Date.now().toString(36),name,created:Date.now(),frames:review});
+  if(saveLib()){ setStatus(`"${name}" נשמר במאגר. יש בו עכשיו ${library.length} סימנים.`); }
+  review=null; showReview(false); stopPlay(); $("sign-name").value=""; renderLetters();
+};
+$("btn-redo").onclick=()=>{ review=null; showReview(false); stopPlay(); if(camOn) startCountdown(); else setStatus("הפעילי מצלמה או העלי סרטון חדש."); };
+$("btn-discard").onclick=()=>{ review=null; showReview(false); stopPlay(); setStatus(camOn?"ההקלטה נמחקה. המצלמה עדיין פועלת.":"ההקלטה נמחקה."); };
+
+// video file upload: processed frame by frame, never stored
+$("file-video").onchange=async e=>{
+  const file=e.target.files[0]; e.target.value=""; if(!file) return;
+  if(camOn) stopCam();
+  try{ await loadModels(); }catch{ setStatus("לא הצלחתי לטעון את המודלים. ודאי שיש חיבור לאינטרנט.",true); return; }
+  const url=URL.createObjectURL(file); const v=document.createElement("video");
+  v.src=url; v.muted=true; v.playsInline=true;
+  await new Promise((res,rej)=>{v.onloadeddata=res; v.onerror=rej;}).catch(()=>{});
+  if(!v.videoWidth){ URL.revokeObjectURL(url); setStatus("לא הצלחתי לפתוח את הסרטון. נסי קובץ MP4.",true); return; }
+  setStatus("מעבד את הסרטון..."); setBadge("מעבד"); stopPlay(); smooth=null; processing=true;
+  const frames=[];
+  await new Promise(resolve=>{
+    const step=(now,meta)=>{
+      const F=detect(v); if(F){ const S=smoothFrame(F); frames.push({...S,t:Math.round(meta.mediaTime*1000)}); applyFrame(S); }
+      if(!v.ended) v.requestVideoFrameCallback(step);
+    };
+    v.onended=resolve; v.requestVideoFrameCallback(step); v.play();
+  });
+  URL.revokeObjectURL(url); v.removeAttribute("src"); v.load(); smooth=null; processing=false;
+  setBadge("בדיקה"); enterReview(frames);
+};
+
+/* ---------- translate ---------- */
+const strip=s=>s.replace(/[֑-ׇ]/g,"").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim().toLowerCase();
+function tokenize(text){ return strip(text).split(" ").filter(Boolean); }
+function matchSigns(text){
+  const words=tokenize(text), map=new Map(library.map(s=>[strip(s.name),s]));
+  const maxN=Math.max(1,...library.map(s=>strip(s.name).split(" ").length));
+  const out=[]; let i=0;
+  while(i<words.length){
+    let hit=null;
+    for(let n=Math.min(maxN,words.length-i);n>=1;n--){ const k=words.slice(i,i+n).join(" "); if(map.has(k)){hit={sign:map.get(k),n,text:k};break;} }
+    if(!hit){ const w=words[i]; if(w.length>2 && "והבלמשכ".includes(w[0]) && map.has(w.slice(1))) hit={sign:map.get(w.slice(1)),n:1,text:w}; }
+    if(hit){ out.push({text:hit.text,sign:hit.sign}); i+=hit.n; } else { out.push({text:words[i]}); i++; }
+  }
+  return out;
+}
+const caption=$("caption");
+function renderCaption(tokens,active=-1){
+  caption.innerHTML="";
+  if(!tokens.length){ caption.innerHTML='<span class="empty">כאן תופיע הכתובית של מה שנאמר.</span>'; return; }
+  tokens.forEach((t,i)=>{ const s=document.createElement("span"); s.className="w"+(t.sign?" known":"")+(i===active?" active":""); s.textContent=t.text; caption.append(s); });
+}
+function signText(text){
+  const tokens=matchSigns(text); renderCaption(tokens);
+  const seq=tokens.map((t,i)=>t.sign?{frames:t.sign.frames,idx:i}:null).filter(Boolean);
+  if(!seq.length) return;
+  if(camOn) stopCam();
+  review=null; showReview(false);
+  play(seq,{label:"מסמן",onMark:idx=>renderCaption(tokens,idx),onEnd:()=>renderCaption(tokens)});
+}
+$("btn-sign").onclick=()=>signText($("tr-text").value);
+$("tr-text").addEventListener("keydown",e=>{ if(e.key==="Enter") signText(e.target.value); });
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition; let rec=null;
+if(!SR){ $("btn-mic").disabled=true; $("mic-note").textContent="זיהוי דיבור זמין ב-Chrome ובאדג׳. אפשר להקליד בינתיים."; }
+$("btn-mic").onclick=()=>{
+  if(rec){ rec.stop(); return; }
+  rec=new SR(); rec.lang="he-IL"; rec.interimResults=true; rec.continuous=false;
+  $("btn-mic").classList.add("listening"); $("mic-note").textContent="מקשיב...";
+  let finalText="";
+  rec.onresult=e=>{
+    let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) finalText+=r[0].transcript+" "; else interim+=r[0].transcript; }
+    renderCaption(matchSigns(finalText+interim)); $("tr-text").value=(finalText+interim).trim();
+  };
+  rec.onerror=e=>{ $("mic-note").textContent=e.error==="not-allowed"?"אין הרשאה למיקרופון.":"זיהוי הדיבור נכשל. נסי שוב."; };
+  rec.onend=()=>{ $("btn-mic").classList.remove("listening"); rec=null; if(finalText.trim()){ $("mic-note").textContent=""; signText(finalText); } else if($("mic-note").textContent==="מקשיב...") $("mic-note").textContent="לא נשמע דיבור."; };
+  rec.start();
+};
+
+/* ---------- main loop ---------- */
+let lastChip=0;
+const RVFC="requestVideoFrameCallback" in HTMLVideoElement.prototype; let frameReady=false;
+function watchFrames(){ if(!RVFC) return; const cb=()=>{ frameReady=true; if(camOn) video.requestVideoFrameCallback(cb); }; video.requestVideoFrameCallback(cb); }
+function newFrame(){
+  if(RVFC){ if(!frameReady) return false; frameReady=false; return true; }
+  if(video.currentTime===lastVT) return false; lastVT=video.currentTime; return true;
+}
+function loop(now){
+  if(processing){
+    /* uploaded video is being processed and drives the avatar itself */
+  } else if(camOn && !player && video.readyState>=2 && lm && newFrame()){
+    const F=detect(video);
+    if(now-lastChip>200){ lastChip=now; setChip("c-body",F); setChip("c-lh",F&&F.l); setChip("c-rh",F&&F.r); setChip("c-face",F&&F.f); }
+    if(F){
+      const S=smoothFrame(F); applyFrame(S);
+      if(recording){ recording.frames.push({...S,t:Math.round(now-recording.start)}); if(now-recording.start>10000) finishRec(); }
+      else if(!countdown) setBadge("חי");
+    }
+  } else if(camOn && lm && !player){
+    /* waiting for the next camera frame: keep the last pose */
+  } else if(player){
+    let ms=now-player.start; const end=player.frames.at(-1).t;
+    if(ms>end){ if(player.loop){ player.start=now; ms=0; player.lastMark=-1; } else { const cb=player.onEnd; player=null; setBadge("מנוחה"); if(cb) cb(); applyFrame(restFrame()); renderer.render(scene,camera); requestAnimationFrame(loop); return; } }
+    applyFrame(frameAt(player,ms)); setBadge(player.label);
+    if(player.onMark){ let m=-1; for(const k of player.marks) if(ms>=k.t) m=k.idx; if(m!==player.lastMark){ player.lastMark=m; player.onMark(m); } }
+  } else {
+    applyFrame(restFrame(Math.sin(now/900)));
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+function renderLetters(){
+  const have=new Set(library.filter(x=>!x.example).map(x=>x.name.trim()));
+  const box=$("letters"); box.innerHTML="";
+  for(const ch of "אבגדהוזחטיכלמנסעפצקרשת"){
+    const b=document.createElement("button"); b.type="button"; b.textContent=ch; if(have.has(ch)) b.className="done";
+    b.onclick=()=>{ $("sign-name").value=ch; $("sign-name").focus(); }; box.append(b);
+  }
+}
+const _renderLib=renderLib; renderLib=function(){ _renderLib(); renderLetters(); };
+loadLib(); renderLib();
+
+/* ---------- real-signer video clips ---------- */
+(function(){
+  const live=$("v-live"), review=$("v-review"), st=$("v-status");
+  let stream=null, recorder=null, chunks=[], blob=null, facingV="user", stopT=0;
+  const say=(m,err=false)=>{ st.textContent=m; st.classList.toggle("err",err); };
+  const mime=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||"";
+  const ext=mime.includes("mp4")?"mp4":"webm";
+  const doneKey="signstudio.videos.done";
+  const doneList=()=>{ try{ return JSON.parse(localStorage.getItem(doneKey)||"[]"); }catch{ return []; } };
+  const showDone=()=>{ const d=doneList(); $("v-done-list").textContent=d.length?("צולמו ונשמרו: "+d.join(", ")):""; };
+  showDone();
+  async function startCam(){
+    try{
+      if(camOn) stopCam();
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facingV,width:{ideal:720},height:{ideal:960},frameRate:{ideal:30}},audio:false});
+      live.srcObject=stream; live.style.transform=facingV==="user"?"scaleX(-1)":"none"; await live.play();
+      $("v-box").hidden=false; live.hidden=false; review.hidden=true; $("v-guide").hidden=false;
+      $("v-cam").textContent="כיבוי מצלמה"; $("v-flip").hidden=false; $("v-rec").disabled=false;
+      say(window.MediaRecorder?"המצלמה פועלת. כוונו כך שהראש בתוך האליפסה והמותניים על הקו.":"הדפדפן הזה לא תומך בצילום סרטונים. נסו Safari מעודכן או Chrome.", !window.MediaRecorder);
+    }catch(e){ say("לא הצלחתי להפעיל את המצלמה. אשרו גישה למצלמה בהגדרות הדפדפן.",true); }
+  }
+  function stopStream(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; live.srcObject=null; $("v-cam").textContent="הפעלת מצלמה"; $("v-flip").hidden=true; $("v-rec").disabled=true; }
+  $("v-cam").onclick=()=>{ if(stream){ stopStream(); $("v-box").hidden=true; } else startCam(); };
+  $("v-flip").onclick=()=>{ facingV=facingV==="user"?"environment":"user"; stopStream(); startCam(); };
+  $("v-rec").onclick=()=>{
+    if(recorder&&recorder.state==="recording"){ recorder.stop(); return; }
+    if(!$("v-name").value.trim()){ say("כתבו קודם את המילה שמסמנים.",true); $("v-name").focus(); return; }
+    const c=$("v-count"); let n=3; c.hidden=false; c.textContent=n; $("v-rec").disabled=true;
+    const iv=setInterval(()=>{ n--; if(n>0){ c.textContent=n; return; } clearInterval(iv); c.hidden=true; begin(); },700);
+  };
+  function begin(){
+    chunks=[]; recorder=new MediaRecorder(stream, mime?{mimeType:mime,videoBitsPerSecond:2500000}:undefined);
+    recorder.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    recorder.onstop=()=>{
+      clearTimeout(stopT); blob=new Blob(chunks,{type:recorder.mimeType||mime||"video/mp4"});
+      review.src=URL.createObjectURL(blob); review.hidden=false; live.hidden=true; $("v-guide").hidden=true; review.play().catch(()=>{});
+      $("v-rec-row").hidden=true; $("v-done-row").hidden=false; $("v-rec").innerHTML='<span class="dot"></span> צילום';
+      say("צפו בסרטון. אם הוא טוב, שמרו אותו.");
+    };
+    recorder.start(); $("v-rec").disabled=false; $("v-rec").innerHTML='<span class="dot"></span> עצירה';
+    say("מצלם. סמנו עכשיו ולחצו עצירה כשסיימתם.");
+    stopT=setTimeout(()=>{ if(recorder.state==="recording") recorder.stop(); },8000);
+  }
+  function reset(){ if(review.src) URL.revokeObjectURL(review.src); review.removeAttribute("src"); review.hidden=true; live.hidden=false; $("v-guide").hidden=false; $("v-rec-row").hidden=false; $("v-done-row").hidden=true; blob=null; }
+  $("v-redo").onclick=()=>{ reset(); say("מוכנים לצילום חוזר."); };
+  $("v-save").onclick=async()=>{
+    if(!blob) return;
+    const word=$("v-name").value.trim(); const file=new File([blob],word+"."+ext,{type:blob.type});
+    let saved=false;
+    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:word}); saved=true; } }catch(e){ if(e&&e.name==="AbortError"){ say("השמירה בוטלה. אפשר לנסות שוב.",true); return; } }
+    if(!saved){ const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+    const d=doneList(); if(!d.includes(word)){ d.push(word); try{ localStorage.setItem(doneKey,JSON.stringify(d)); }catch{} }
+    showDone(); reset(); $("v-name").value=""; say(`"${word}" נשמר. אפשר לצלם את המילה הבאה.`);
+  };
+})();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Secular+One&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: a studio stage (the avatar) beside a control panel with three tabs — record, library, translate. Stacks on narrow screens. */
+/* Layout: one phone column: signer video stage, live caption, controls. */
 :root{
   --bg:#EDF1F2; --surface:#FFFFFF; --stage:#D9E3E6; --ink:#14212A; --muted:#5A6A74;
   --line:#CBD6DA; --accent:#0D7472; --accent-ink:#FFFFFF; --rec:#C93C3C; --ok:#2E7D4F; --warn:#A86A12;
@@ -38,6 +38,9 @@ h1{font:400 22px/1.1 var(--f-display);margin:0}
 .stage{position:relative;background:var(--stage);border-radius:18px;overflow:hidden;width:100%;aspect-ratio:4/4.4;max-height:52vh;margin-inline:auto}
 .stage canvas{display:block;width:100%;height:100%}
 .sv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%;opacity:0;transition:opacity .12s;background:var(--stage);pointer-events:none}
+.idle{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:6px;color:var(--muted);text-align:center;padding:16px}
+.idle svg{width:64px;height:64px;opacity:.55}
+.idle b{font:400 18px var(--f-display);color:var(--ink)}
 .sv.on{opacity:1}
 @media (prefers-reduced-motion:reduce){.sv{transition:none}}
 .badge{z-index:2;position:absolute;top:10px;inset-inline-start:10px;font:600 13px var(--f-body);padding:4px 11px;border-radius:999px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
@@ -75,275 +78,50 @@ footer a{color:var(--accent)}
 <body>
 <div class="app">
   <header><h1>מתרגם סימנים</h1><span class="vocab" id="vocab">טוען...</span></header>
-  <div class="stage"><canvas id="cv" aria-label="אווטאר מסמן"></canvas><video class="sv" id="vA" playsinline muted preload="auto"></video><video class="sv" id="vB" playsinline muted preload="auto"></video><div class="badge" id="badge">מוכן</div></div>
+  <div class="stage">
+    <div class="idle" id="idle"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 34V14a4 4 0 0 1 8 0v16M30 28V10a4 4 0 0 1 8 0v18M38 28V14a4 4 0 0 1 8 0v20c0 12-7 22-18 22-7 0-11-4-15-10l-6-10a4 4 0 0 1 7-4l5 6"/></svg><b>מוכן לתרגם</b><span id="idle-sub">מילים עם סרטון יוצגו כאן בשפת סימנים</span></div>
+    <video class="sv" id="vIdle" playsinline muted loop preload="auto"></video>
+    <video class="sv" id="vA" playsinline muted preload="auto"></video>
+    <video class="sv" id="vB" playsinline muted preload="auto"></video>
+    <div class="badge" id="badge">מוכן</div>
+  </div>
   <div class="caption" id="caption" aria-live="polite"></div>
   <div class="tools">
     <button id="replay" type="button">שוב</button>
-    <span class="hint" style="font-size:13px;color:var(--muted)">מהירות</span>
-    <button type="button" class="spd" data-s="0.7">איטי</button>
+    <span style="font-size:13px;color:var(--muted)">מהירות</span>
+    <button type="button" class="spd" data-s="0.75">איטי</button>
     <button type="button" class="spd" data-s="1" aria-pressed="true">רגיל</button>
-    <button type="button" class="spd" data-s="1.3">מהיר</button>
+    <button type="button" class="spd" data-s="1.25">מהיר</button>
     <span class="sep"></span>
-    <span id="mode-box" hidden><button type="button" class="mode" data-m="video" aria-pressed="true">סרטון</button> <button type="button" class="mode" data-m="avatar">אווטאר</button></span>
     <label><input type="checkbox" id="spell" checked> איות מילים חסרות</label>
   </div>
   <button class="mic" id="mic"><span class="dot"></span><span id="mic-label">התחילו להקשיב</span></button>
   <div class="note" id="note"></div>
   <form class="type" id="type-form"><input id="type-in" type="text" placeholder="או הקלידו משפט" autocomplete="off"><button type="submit">סימון</button></form>
-  <footer><button class="linkish" id="clear" style="background:none;border:0;color:var(--muted);font:inherit;padding:0;cursor:pointer">ניקוי הכתובית</button><a href="studio.html">סטודיו הקלטה</a></footer>
+  <footer><button id="clear" type="button" style="background:none;border:0;color:var(--muted);font:inherit;padding:0;cursor:pointer">ניקוי הכתובית</button><a href="studio.html">צילום סרטונים</a></footer>
 </div>
 <script>
 window.addEventListener("error",function(e){var n=document.getElementById("note");if(n){n.textContent="שגיאה טכנית: "+(e.message||e.error);n.className="note err";}});
 window.addEventListener("unhandledrejection",function(e){var n=document.getElementById("note"),r=e.reason;if(n){n.textContent="שגיאה טכנית: "+((r&&r.message)||r);n.className="note err";}});
 </script>
 <script type="module">
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
-const MODELS = {
-  pose: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-  hand: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-  face: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-};
-const $ = id => document.getElementById(id);
-const FACE_KEYS = ["browDownLeft","browDownRight","browInnerUp","browOuterUpLeft","browOuterUpRight","eyeBlinkLeft","eyeBlinkRight","eyeWideLeft","eyeWideRight","jawOpen","mouthSmileLeft","mouthSmileRight","mouthPucker","cheekPuff","mouthFrownLeft","mouthFrownRight"];
-const FI = Object.fromEntries(FACE_KEYS.map((k,i)=>[k,i]));
-const Z_POSE = 0.35, Z_HAND = 0.9;
-const r3 = v => Math.round(v*1000)/1000;
+const $=id=>document.getElementById(id);
 
-/* ---------- vector helpers ---------- */
-const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
-const mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s], len=a=>Math.hypot(a[0],a[1],a[2]);
-const norm=a=>{const l=len(a)||1;return mul(a,1/l)};
-const lerp=(a,b,t)=>a+(b-a)*t;
-const lerpArr=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t));
-
-/* ---------- synthetic hand (rest pose + demo) ---------- */
-function synthHand(wrist, u, s, curlVec, curl=0.25, size=1){
-  u=norm(u); s=norm(s); curlVec=norm(curlVec);
-  const pts=new Array(21);
-  pts[0]=wrist;
-  const fingers=[[5,0.075],[9,0.025],[13,-0.025],[17,-0.07]];
-  const segs=[0.1,0.065,0.055];
-  for(const [base,off] of fingers){
-    let p=add(wrist, add(mul(u,0.21*size), mul(s,off*size*1.25)));
-    pts[base]=p; let d=u;
-    for(let j=0;j<3;j++){
-      d=norm(add(mul(d,Math.cos(curl)), mul(curlVec,Math.sin(curl))));
-      p=add(p, mul(d,segs[j]*size*(base===17?0.8:1)));
-      pts[base+1+j]=p;
-    }
-  }
-  let p=add(wrist, add(mul(u,0.05*size), mul(s,0.06*size))); pts[1]=p;
-  let d=norm(add(u,mul(s,1.1)));
-  for(let j=0;j<3;j++){ d=norm(add(mul(d,Math.cos(curl*0.6)), mul(curlVec,Math.sin(curl*0.6)))); p=add(p,mul(d,[0.07,0.06,0.05][j]*size)); pts[2+j]=p; }
-  return pts.flat().map(r3);
-}
-function restFrame(breath=0){
-  const b=breath*0.01;
-  // neutral interpreter stance: hands resting together in front of the waist, always in view
-  const p=[[0,0.62,0.25],[0.5,b,0],[-0.5,b,0],[0.62,-0.76+b,0.08],[-0.62,-0.76+b,0.08],[0.27,-1.08+b,0.42],[-0.27,-1.08+b,0.42]];
-  return {p:p.flat(), l:synthHand(p[5],[-1,-0.05,0.15],[0,0.6,1],[0,-1,-0.2],0.4), r:synthHand(p[6],[1,-0.05,0.15],[0,0.6,1],[0,-1,-0.2],0.4), f:new Array(FACE_KEYS.length).fill(0), h:[0,0,0]};
-}
-function demoWave(){
-  const frames=[];
-  for(let i=0;i<54;i++){
-    const t=i/30, w=Math.sin(t*Math.PI*2*1.6);
-    const ramp=Math.min(1,i/8);
-    const rest=restFrame();
-    const p=[[0,0.62,0.25],[0.5,0,0],[-0.5,0.03,0],[0.62,-0.76,0.08],[-0.82,-0.5,0.12],[0.27,-1.08,0.42],[-0.78+w*0.1,0.22,0.24]];
-    const pr=rest.p; const pf=p.flat().map((v,k)=>r3(lerp(pr[k],v,ramp)));
-    const wrist=[pf[18],pf[19],pf[20]];
-    const ang=w*0.35, u=[Math.sin(ang),Math.cos(ang),0], s=[-Math.cos(ang),Math.sin(ang),0];
-    const f=new Array(FACE_KEYS.length).fill(0); f[FI.mouthSmileLeft]=0.6; f[FI.mouthSmileRight]=0.6; f[FI.browInnerUp]=0.3;
-    frames.push({t:Math.round(t*1000), p:pf, l:rest.l, r:synthHand(wrist,u,s,[0,0,1],0.08), f, h:[0,w*0.08,0]});
-  }
-  return frames;
-}
-
-/* ---------- three.js avatar ---------- */
-const canvas=$("cv");
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
-renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
-const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(28,4/5,0.1,50);
-camera.position.set(0,-0.12,5.3); camera.lookAt(0,-0.22,0);
-scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));
-const key=new THREE.DirectionalLight(0xffffff,1.7); key.position.set(-2,3,4); scene.add(key);
-const fill=new THREE.DirectionalLight(0xffffff,0.9); fill.position.set(1.5,0.5,5); scene.add(fill);
-const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-/* illustrated look: flat toon shading + dark outlines, so finger shapes read clearly on a small screen */
-const toonGrad=(()=>{const d=new Uint8Array([110,185,255]);const tx=new THREE.DataTexture(d,3,1,THREE.RedFormat);tx.minFilter=tx.magFilter=THREE.NearestFilter;tx.needsUpdate=true;return tx})();
-const toon=(o={})=>new THREE.MeshToonMaterial({gradientMap:toonGrad,...o});
-const mats={
-  skin:toon(), skinDark:toon(), shirt:toon(), hair:toon(),
-  white:toon({color:0xffffff}), pupil:toon({color:0x1b130f}), mouth:toon({color:0x7a2f2f}),
-};
-mats.palm=toon({side:THREE.DoubleSide});
-const OUT_VS="uniform float th; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vec3 n=normalize(normalMatrix*normal); mv.xyz+=n*th; gl_Position=projectionMatrix*mv; }";
-const OUT_FS="uniform vec3 col; void main(){ gl_FragColor=vec4(col,1.0); }";
-const outMat=(hex,th)=>new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{th:{value:th},col:{value:new THREE.Color(hex)}},vertexShader:OUT_VS,fragmentShader:OUT_FS});
-const OUT={skin:outMat(0x4a2a18,0.014), hand:outMat(0x3a2012,0.009), dark:outMat(0x05080b,0.016)};
-const outline=(m,o)=>{ m.add(new THREE.Mesh(m.geometry,o)); return m; };
-function applyTheme(){
-  scene.background=new THREE.Color(css("--stage"));
-  const skin=new THREE.Color(css("--skin"));
-  mats.skin.color=skin; mats.palm.color=skin; mats.skinDark.color=skin.clone().multiplyScalar(0.88);
-  mats.shirt.color=new THREE.Color(css("--shirt")); mats.hair.color=new THREE.Color(css("--hair"));
-  mats.brow=mats.hair;
-}
-applyTheme();
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme);
-new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
-
-const UP=new THREE.Vector3(0,1,0);
-class Limb{
-  constructor(r,mat,o){this.m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,14),mat);if(o) outline(this.m,o);scene.add(this.m);this.v=new THREE.Vector3();}
-  set(a,b){
-    const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b);
-    this.v.subVectors(B,A); const L=this.v.length()||1e-4;
-    this.m.position.addVectors(A,B).multiplyScalar(0.5);
-    this.m.scale.set(1,L,1);
-    this.m.quaternion.setFromUnitVectors(UP,this.v.normalize());
-  }
-}
-const ball=(r,mat,o)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,18,14),mat);if(o) outline(m,o);scene.add(m);return m};
-
-// torso, neck
-const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.47,1.55,32),mats.shirt);
-torso.scale.set(1,1,0.5); torso.position.set(0,-0.82,-0.05); outline(torso,OUT.dark); scene.add(torso);
-const shoulders=new THREE.Mesh(new THREE.CapsuleGeometry(0.15,0.72,8,20),mats.shirt);
-shoulders.rotation.z=Math.PI/2; shoulders.scale.set(1,1,0.75); shoulders.position.set(0,-0.06,-0.05); outline(shoulders,OUT.dark); scene.add(shoulders);
-const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.15,0.3,16),mats.skin); neck.position.set(0,0.2,0); outline(neck,OUT.skin); scene.add(neck);
-
-// head
-const head=new THREE.Group(); head.position.set(0,0.62,0); scene.add(head);
-const skull=new THREE.Mesh(new THREE.SphereGeometry(0.34,32,24),mats.skin); skull.scale.set(0.92,1.08,0.95); outline(skull,OUT.skin); head.add(skull);
-const hair=new THREE.Mesh(new THREE.SphereGeometry(0.355,32,20,0,Math.PI*2,0,Math.PI*0.5),mats.hair);
-hair.scale.set(0.95,1.1,1); hair.position.set(0,0.035,-0.02); hair.rotation.x=-0.25; outline(hair,OUT.dark); head.add(hair);
-const nose=new THREE.Mesh(new THREE.SphereGeometry(0.045,14,10),mats.skinDark); nose.position.set(0,-0.03,0.32); head.add(nose);
-function makeEye(x){
-  const g=new THREE.Group(); g.position.set(x,0.06,0.27);
-  const w=new THREE.Mesh(new THREE.SphereGeometry(0.066,16,12),mats.white); w.scale.set(1,0.8,0.55); g.add(w);
-  const p=new THREE.Mesh(new THREE.SphereGeometry(0.034,12,10),mats.pupil); p.position.z=0.03; g.add(p);
-  head.add(g); return g;
-}
-const eyeL=makeEye(0.12), eyeR=makeEye(-0.12);
-function makeBrow(x){const b=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.038,0.035),mats.hair);b.position.set(x,0.16,0.29);head.add(b);return b}
-const browL=makeBrow(0.12), browR=makeBrow(-0.12);
-const mouth=new THREE.Mesh(new THREE.SphereGeometry(0.09,20,12),mats.mouth); mouth.position.set(0,-0.16,0.28); head.add(mouth);
-
-// arms
-const mkArm=()=>({up:new Limb(0.11,mats.shirt,OUT.dark),lo:new Limb(0.095,mats.shirt,OUT.dark),sh:ball(0.105,mats.shirt,OUT.dark),el:ball(0.1,mats.shirt,OUT.dark)});
-const arm={L:mkArm(),R:mkArm()};
-// hands
-const HB=[[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[0,5],[5,9],[9,13],[13,17],[0,17]];
-function makeHand(){
-  const joints=[...Array(21)].map((_,i)=>ball(i===0?0.058:(i%4===0&&i>0?0.03:0.034),mats.skin,OUT.hand));
-  const bones=HB.map(([a,b])=>new Limb(b===a+1?0.031:0.036,mats.skin,OUT.hand));
-  const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.BufferAttribute(new Float32Array(4*9),3));
-  const palm=new THREE.Mesh(geo,mats.palm); scene.add(palm);
-  return {joints,bones,palm,geo};
-}
-const hand={L:makeHand(),R:makeHand()};
-const HAND_SCALE=1.3;
-function setHand(h,pts){
-  const w0=[pts[0],pts[1],pts[2]];
-  const P=i=>[w0[0]+(pts[i*3]-w0[0])*HAND_SCALE, w0[1]+(pts[i*3+1]-w0[1])*HAND_SCALE, w0[2]+(pts[i*3+2]-w0[2])*HAND_SCALE];
-  for(let i=0;i<21;i++){const q=P(i);h.joints[i].position.set(q[0],q[1],q[2]);}
-  HB.forEach(([a,b],k)=>h.bones[k].set(P(a),P(b)));
-  const tri=[[0,1,5],[0,5,9],[0,9,13],[0,13,17]]; const arr=h.geo.attributes.position.array; let o=0;
-  for(const t of tri) for(const i of t){const q=P(i);arr[o++]=q[0];arr[o++]=q[1];arr[o++]=q[2];}
-  h.geo.attributes.position.needsUpdate=true; h.geo.computeVertexNormals(); h.geo.computeBoundingSphere();
-}
-function applyFrame(F){
-  const p=i=>[F.p[i*3],F.p[i*3+1],F.p[i*3+2]];
-  const sides=[["L",1,3,5,F.l],["R",2,4,6,F.r]];
-  for(const [S,si,ei,wi,hp] of sides){
-    const a=arm[S], sh=p(si), el=p(ei), wr=hp?[hp[0],hp[1],hp[2]]:p(wi);
-    a.sh.position.set(...sh); a.el.position.set(...el); a.up.set(sh,el); a.lo.set(el,wr);
-    setHand(hand[S], hp || synthHand(wr, sub(wr,el), [0,0,1], S==="L"?[-1,0,0]:[1,0,0], 0.4));
-  }
-  const f=F.f||[];
-  const g=k=>f[FI[k]]||0;
-  eyeL.scale.y=Math.max(0.08,1-g("eyeBlinkLeft")+g("eyeWideLeft")*0.4);
-  eyeR.scale.y=Math.max(0.08,1-g("eyeBlinkRight")+g("eyeWideRight")*0.4);
-  browL.position.y=0.16+g("browInnerUp")*0.05+g("browOuterUpLeft")*0.04-g("browDownLeft")*0.04;
-  browR.position.y=0.16+g("browInnerUp")*0.05+g("browOuterUpRight")*0.04-g("browDownRight")*0.04;
-  browL.rotation.z=(g("browInnerUp")-g("browOuterUpLeft"))*0.35-g("browDownLeft")*0.3;
-  browR.rotation.z=-(g("browInnerUp")-g("browOuterUpRight"))*0.35+g("browDownRight")*0.3;
-  const smile=(g("mouthSmileLeft")+g("mouthSmileRight"))/2, frown=(g("mouthFrownLeft")+g("mouthFrownRight"))/2;
-  mouth.scale.set(1+smile*0.45-g("mouthPucker")*0.45, 0.14+g("jawOpen")*1.1+frown*0.05, 0.35);
-  mouth.position.y=-0.16-g("jawOpen")*0.04;
-  skull.scale.x=0.92+g("cheekPuff")*0.08;
-  const h=F.h||[0,0,0];
-  head.rotation.set(h[0],h[1],h[2]);
-}
-
-function resize(){
-  const r=canvas.parentElement.getBoundingClientRect();
-  renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height);
-  // fit the signing space (head to waist, elbow to elbow) to whatever shape the stage has
-  const tn=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), cy=-0.2, H=1.36, W=1.48;
-  const d=Math.max(H/tn, W/(tn*camera.aspect))*1.02;
-  camera.position.set(0,cy+0.08,d); camera.lookAt(0,cy,0); camera.updateProjectionMatrix();
-}
-new ResizeObserver(resize).observe(canvas.parentElement); resize();
-
-/* ---------- frame interpolation & playback ---------- */
-function lerpFrame(a,b,t){
-  return {p:lerpArr(a.p,b.p,t), l:(a.l&&b.l)?lerpArr(a.l,b.l,t):(a.l||b.l), r:(a.r&&b.r)?lerpArr(a.r,b.r,t):(a.r||b.r),
-          f:lerpArr(a.f||[],b.f||a.f||[],t), h:lerpArr(a.h||[0,0,0],b.h||[0,0,0],t)};
-}
-function fillGaps(frames){
-  const out=frames.map(f=>({...f, f:f.f||new Array(FACE_KEYS.length).fill(0), h:f.h||[0,0,0]}));
-  for(const k of ["l","r"]){
-    let last=null; for(const f of out){ if(f[k]) last=f[k]; else if(last) f[k]=last; }
-    const first=out.find(f=>f[k]); if(first){ for(const f of out){ if(f[k]) break; f[k]=first[k]; } }
-  }
-  return out;
-}
-let player=null; // {frames, marks:[{t,idx}], start, loop, onEnd}
-function buildSequence(signs){
-  const frames=[], marks=[]; let t=0;
-  const rest={...restFrame(), t:0}; frames.push(rest); t=320;
-  signs.forEach((s,i)=>{
-    const fr=fillGaps(s.frames); const t0=fr[0].t;
-    marks.push({t, idx:s.idx??i});
-    const sc=s.scale||1;
-    for(const f of fr) frames.push({...f, t:t+(f.t-t0)*sc});
-    t=frames[frames.length-1].t+(s.gap??260);
-  });
-  frames.push({...restFrame(), t:t+120});
-  return {frames, marks};
-}
-function frameAt(seq, ms){
-  const fr=seq.frames; if(ms<=fr[0].t) return fr[0];
-  for(let i=1;i<fr.length;i++) if(fr[i].t>=ms){ const a=fr[i-1],b=fr[i]; return lerpFrame(a,b,(ms-a.t)/Math.max(1,b.t-a.t)); }
-  return fr[fr.length-1];
-}
-function play(signs,{loop=false,onMark=null,onEnd=null,label="מסמן"}={}){
-  const seq=buildSequence(signs);
-  player={...seq,start:performance.now(),loop,onMark,onEnd,lastMark:-1,label};
-}
-function stopPlay(){ player=null; }
-
-
-/* ---------- vocabulary: shared signs.json + this device's own recordings ---------- */
-let library=[];
+/* ---------- vocabulary: words that have a real signer video ---------- */
+let library=[], idleClip=null;
+const strip=s=>s.replace(/[\u0591-\u05C7]/g,"").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim().toLowerCase();
 async function loadVocab(){
-  let shared=[], local=[];
-  try{ const r=await fetch("signs.json?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); shared=d.signs||[]; } }catch{}
-  try{ local=JSON.parse(localStorage.getItem("signstudio.library.v1")||"[]")||[]; }catch{}
-  const ok=s=>s&&s.name&&!s.example&&((Array.isArray(s.frames)&&s.frames.length)||s.video);
-  const byName=new Map();
-  for(const s of [...shared.filter(ok),...local.filter(ok)]) byName.set(strip(s.name),s); // device recordings override
-  library=[...byName.values()];
-  const hasVideo=library.some(s=>s.video); $("mode-box").hidden=!hasVideo; if(!hasVideo) mode="avatar";
+  let shared=[];
+  try{ const r=await fetch("signs.json?t="+Date.now(),{cache:"no-store"}); if(r.ok) shared=(await r.json()).signs||[]; }catch{}
+  const vids=shared.filter(s=>s&&s.name&&s.video);
+  idleClip=vids.find(s=>strip(s.name)==="מנוחה")||null;
+  library=vids.filter(s=>s!==idleClip);
   $("vocab").textContent=library.length+" סימנים";
+  if(idleClip){ const v=$("vIdle"); v.src=idleClip.video; v.play().catch(()=>{}); v.classList.add("on"); }
+  if(!library.length) $("idle-sub").textContent="עוד אין סרטונים במאגר. בינתיים תופיע כתובית בלבד.";
 }
 
 /* ---------- matching ---------- */
-const strip=s=>s.replace(/[֑-ׇ]/g,"").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim().toLowerCase();
 function matchSigns(text){
   const words=strip(text).split(" ").filter(Boolean), map=new Map(library.map(s=>[strip(s.name),s]));
   const maxN=Math.max(1,...library.map(s=>strip(s.name).split(" ").length));
@@ -356,72 +134,67 @@ function matchSigns(text){
   }
   return out;
 }
-
-/* ---------- caption + sign queue ---------- */
-const caption=$("caption");
-let tokens=[], interim="", active=-1, queue=[];
-function renderCaption(){
-  caption.innerHTML="";
-  if(!tokens.length&&!interim){ caption.innerHTML='<span class="empty">לחצו על הכפתור ותנו לאדם השומע לדבר אל הטלפון. התרגום יופיע כאן ועל האווטאר.</span>'; return; }
-  tokens.forEach((t,i)=>{ const s=document.createElement("span"); s.className="w"+(t.sign?" known":"")+(t.spelled?" spelled":"")+(i===active?" active":""); s.textContent=t.text; caption.append(s); });
-  if(interim){ const s=document.createElement("span"); s.className="interim"; s.textContent=interim; caption.append(s); }
-  caption.scrollTop=caption.scrollHeight;
-}
 const FINAL={"ך":"כ","ם":"מ","ן":"נ","ף":"פ","ץ":"צ"};
 function letterSign(ch){
   const m=new Map(library.filter(s=>/^[\u05D0-\u05EA]$/.test(s.name.trim())).map(s=>[s.name.trim(),s]));
   return m.get(ch)||m.get(FINAL[ch]);
 }
-let lastBatch=[];
+
+/* ---------- caption ---------- */
+const caption=$("caption");
+let tokens=[], interim="", active=-1, queue=[], lastBatch=[];
+function renderCaption(){
+  caption.innerHTML="";
+  if(!tokens.length&&!interim){ caption.innerHTML='<span class="empty">לחצו על הכפתור ותנו לאדם השומע לדבר אל הטלפון. הכתובית והסימנים יופיעו כאן.</span>'; return; }
+  tokens.forEach((t,i)=>{ const s=document.createElement("span"); s.className="w"+(t.sign?" known":"")+(t.spelled?" spelled":"")+(i===active?" active":""); s.textContent=t.text; caption.append(s); });
+  if(interim){ const s=document.createElement("span"); s.className="interim"; s.textContent=interim; caption.append(s); }
+  caption.scrollTop=caption.scrollHeight;
+}
 function addText(text){
   const add=matchSigns(text);
   tokens.push(...add);
   if(tokens.length>60){ const cut=tokens.length-60; tokens=tokens.slice(cut); queue.forEach(q=>q.idx-=cut); active-=cut; }
   const start=tokens.length-add.length, batch=[];
   add.forEach((t,i)=>{
-    if(t.sign){ batch.push({frames:t.sign.frames, video:t.sign.video, idx:start+i}); return; }
-    // fingerspell unknown words of 3+ letters when every letter has a recorded sign
+    if(t.sign){ batch.push({video:t.sign.video, idx:start+i}); return; }
+    // fingerspell unknown words of 3+ letters when every letter has a video
     const w=t.text; if(!$("spell").checked||w.length<3||w.length>9||!/^[\u05D0-\u05EA]+$/.test(w)) return;
     const ls=[...w].map(letterSign); if(ls.some(x=>!x)) return;
-    t.spelled=true; ls.forEach(s=>batch.push({frames:s.frames, video:s.video, idx:start+i, scale:0.75, gap:110}));
+    t.spelled=true; ls.forEach(s=>batch.push({video:s.video, idx:start+i, rate:1.35}));
   });
   if(batch.length){ lastBatch=batch; queue.push(...batch); }
   renderCaption(); pump();
 }
-/* playback: real sign videos when available, the avatar for everything else */
-let mode="video", busy=false, hideT=0;
-const vids=[$("vA"),$("vB")]; let cur=0;
-const canVideo=q=>mode==="video"&&q.video, canAvatar=q=>Array.isArray(q.frames)&&q.frames.length;
-function hideVideo(){ vids.forEach(v=>{ v.classList.remove("on"); v.pause(); }); }
+
+/* ---------- video playback: two players swap so the next clip is already loaded ---------- */
+const vids=[$("vA"),$("vB")], badge=$("badge"); let cur=0, busy=false, hideT=0, speed=1;
 function setSrc(v,src){ if(v.dataset.src!==src){ v.dataset.src=src; v.src=src; v.load(); } }
+function hideClips(){ vids.forEach(v=>{ v.classList.remove("on"); v.pause(); }); }
 function pump(){
   if(busy) return;
-  while(queue.length&&!canVideo(queue[0])&&!canAvatar(queue[0])) queue.shift();
-  if(!queue.length){ clearTimeout(hideT); hideT=setTimeout(()=>{ if(!busy) hideVideo(); },900); active=-1; renderCaption(); return; }
-  clearTimeout(hideT); busy=true;
-  if(canVideo(queue[0])){ playClip(queue.shift()); return; }
-  const batch=[]; while(queue.length&&!canVideo(queue[0])&&canAvatar(queue[0])) batch.push(queue.shift());
-  hideVideo();
-  play(batch,{label:"מסמן",onMark:i=>{active=i;renderCaption();},onEnd:()=>{busy=false;pump();}});
+  if(!queue.length){ clearTimeout(hideT); hideT=setTimeout(()=>{ if(!busy){ hideClips(); active=-1; renderCaption(); setBadge(); } },700); return; }
+  clearTimeout(hideT); busy=true; playClip(queue.shift());
 }
 function playClip(item){
   const v=vids[cur], other=vids[1-cur];
-  active=item.idx; renderCaption();
+  active=item.idx; renderCaption(); badge.textContent="מסמן"; badge.classList.add("live");
   setSrc(v,item.video);
-  let finished=false;
-  const finish=()=>{ if(finished) return; finished=true; v.onended=null; v.onerror=null; clearTimeout(guard); cur=1-cur; busy=false; pump(); };
-  const go=()=>{ try{ v.currentTime=0; }catch{} v.playbackRate=speed*(item.scale?1/item.scale:1); const p=v.play(); if(p) p.catch(()=>finish()); v.classList.add("on"); other.classList.remove("on"); };
+  let done=false;
+  const finish=()=>{ if(done) return; done=true; v.onended=null; v.onerror=null; clearTimeout(guard); cur=1-cur; busy=false; pump(); };
+  const go=()=>{ try{ v.currentTime=0; }catch{} v.playbackRate=speed*(item.rate||1); const p=v.play(); if(p) p.catch(()=>finish()); v.classList.add("on"); other.classList.remove("on"); };
   v.onended=finish; v.onerror=finish;
-  const guard=setTimeout(finish,8000);
+  const guard=setTimeout(finish,9000);
   if(v.readyState>=2) go(); else v.addEventListener("canplay",go,{once:true});
-  const nxt=queue.find(q=>canVideo(q)); if(nxt) setSrc(other,nxt.video);
+  if(queue[0]) setSrc(other,queue[0].video);
 }
+function stopAll(){ queue=[]; vids.forEach(v=>{ v.onended=null; v.pause(); }); busy=false; }
 
 /* ---------- speech ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const mic=$("mic"), note=$("note"), badge=$("badge");
+const mic=$("mic"), note=$("note");
 let rec=null, wantListen=false;
 function setNote(m,err=false){ note.textContent=m; note.classList.toggle("err",err); }
+function setBadge(){ badge.textContent=wantListen?"מקשיב":"מוכן"; badge.classList.toggle("live",wantListen); }
 if(!SR){ mic.disabled=true; setNote("זיהוי דיבור לא זמין בדפדפן הזה. אפשר להקליד למטה. באייפון: Safari, ובאנדרואיד: Chrome.",true); }
 function startRec(){
   // one utterance per session, restarted automatically: iPhone Safari repeats results in continuous mode
@@ -432,7 +205,7 @@ function startRec(){
     if(fin.trim()){ interim=""; addText(fin); } else { interim=im; renderCaption(); }
   };
   rec.onerror=e=>{
-    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ wantListen=false; setNote("אין הרשאה למיקרופון או לזיהוי דיבור. באייפון: הגדרות > Safari > מיקרופון, ובנוסף ודאו שהכתבה (Dictation) מופעלת.",true); }
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ wantListen=false; setNote("אין הרשאה למיקרופון או לזיהוי דיבור. באייפון: הגדרות > Safari > מיקרופון, ובנוסף ודאו שההכתבה מופעלת (הגדרות > כללי > מקלדת).",true); }
     else if(e.error!=="no-speech"&&e.error!=="aborted") setNote("זיהוי הדיבור נעצר ("+e.error+"). ממשיך להקשיב...",true);
   };
   rec.onend=()=>{
@@ -443,11 +216,7 @@ function startRec(){
   };
   rec.start();
 }
-function updateMic(){
-  mic.classList.toggle("listening",wantListen);
-  $("mic-label").textContent=wantListen?"מקשיב. לחצו לעצירה":"התחילו להקשיב";
-  badge.textContent=wantListen?"מקשיב":"מוכן"; badge.classList.toggle("live",wantListen);
-}
+function updateMic(){ mic.classList.toggle("listening",wantListen); $("mic-label").textContent=wantListen?"מקשיב. לחצו לעצירה":"התחילו להקשיב"; if(!busy) setBadge(); }
 function stopListen(){ wantListen=false; if(rec) rec.stop(); updateMic(); }
 mic.onclick=()=>{
   if(wantListen){ stopListen(); return; }
@@ -455,26 +224,11 @@ mic.onclick=()=>{
   try{ startRec(); }catch(e){ wantListen=false; updateMic(); setNote("לא הצלחתי להפעיל את המיקרופון.",true); }
 };
 $("type-form").addEventListener("submit",e=>{ e.preventDefault(); const v=$("type-in").value.trim(); if(v){ addText(v); $("type-in").value=""; } });
-let speed=1;
 document.querySelectorAll(".spd").forEach(b=>b.onclick=()=>{ speed=+b.dataset.s; document.querySelectorAll(".spd").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); });
-function stopAll(){ queue=[]; stopPlay(); vids.forEach(v=>{ v.onended=null; v.pause(); }); busy=false; }
 $("replay").onclick=()=>{ if(!lastBatch.length) return; stopAll(); queue.push(...lastBatch.map(s=>({...s}))); pump(); };
-$("clear").onclick=()=>{ stopAll(); hideVideo(); tokens=[]; interim=""; active=-1; renderCaption(); };
-document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{ mode=b.dataset.m; document.querySelectorAll(".mode").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); if(mode==="avatar") hideVideo(); });
+$("clear").onclick=()=>{ stopAll(); hideClips(); tokens=[]; interim=""; active=-1; renderCaption(); setBadge(); };
 
-/* ---------- main loop ---------- */
-function loop(now){
-  const dt=Math.min(100,now-(loop.prev||now)); loop.prev=now;
-  if(player){
-    player.ms=(player.ms||0)+dt*speed; const ms=player.ms; const end=player.frames.at(-1).t;
-    if(ms>end){ const cb=player.onEnd; player=null; applyFrame(restFrame()); if(cb) cb(); }
-    else{ applyFrame(frameAt(player,ms)); if(player.onMark){ let m=-1; for(const k of player.marks) if(ms>=k.t) m=k.idx; if(m!==player.lastMark){ player.lastMark=m; player.onMark(m); } } }
-  } else applyFrame(restFrame(Math.sin(now/900)));
-  renderer.render(scene,camera);
-  requestAnimationFrame(loop);
-}
 renderCaption(); updateMic(); loadVocab();
-requestAnimationFrame(loop);
 </script>
 </body>
 </html>
