@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>סטודיו סימנים</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>מתרגם סימנים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Secular+One&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -28,174 +29,52 @@
   --skin:#D9A57E; --shirt:#0B1218; --hair:#2B1D16; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding:16px;min-height:100vh}
-.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-h1{font:400 30px/1.1 var(--f-display);margin:0;letter-spacing:.01em}
-.privacy{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
-.privacy b{color:var(--ok);font-weight:600}
-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
-@media (max-width:860px){main{grid-template-columns:1fr}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0;display:flex;flex-direction:column}
-.tabs{display:flex;border-bottom:1px solid var(--line)}
-.tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:14px 8px 11px;font:600 15px var(--f-body);color:var(--muted);cursor:pointer}
-.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
-.tab:focus-visible,button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
-.pane{padding:20px;display:flex;flex-direction:column;gap:16px}
-h2{font:400 20px/1.2 var(--f-display);margin:0}
-p{margin:0}
-.hint{color:var(--muted);font-size:14px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-button.btn{font:600 15px var(--f-body);border-radius:10px;padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;gap:8px;align-items:center}
-button.btn:hover{border-color:var(--accent)}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-button.rec{background:var(--rec);color:#fff;border-color:var(--rec)}
-button.btn:disabled{opacity:.45;cursor:not-allowed}
-.dot{width:10px;height:10px;border-radius:50%;background:currentColor;display:inline-block}
-input[type=text]{font:16px var(--f-body);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-width:0;flex:1}
-label.chk{display:inline-flex;gap:8px;align-items:center;font-size:14px;color:var(--muted);cursor:pointer}
-.steps{margin:0;padding:0 18px 0 0;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
-.steps li::marker{color:var(--accent);font-family:var(--f-mono)}
-.status{font-size:14px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
-.status.err{border-color:var(--rec);color:var(--rec)}
-/* Stage */
-.stage{position:relative;background:var(--stage);border-radius:14px;overflow:hidden;aspect-ratio:4/5;max-width:100%}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
+.app{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:12px;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h1{font:400 22px/1.1 var(--f-display);margin:0}
+.vocab{font:500 12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.stage{position:relative;background:var(--stage);border-radius:18px;overflow:hidden;width:100%;aspect-ratio:4/4.4;max-height:52vh;margin-inline:auto}
 .stage canvas{display:block;width:100%;height:100%}
-.chips{position:absolute;top:10px;inset-inline:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
-.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface);color:var(--muted);border:1px solid var(--line);display:inline-flex;gap:5px;align-items:center}
-.chip.on{color:var(--ok);border-color:var(--ok)}
-.chip .dot{width:7px;height:7px}
-.badge{position:absolute;bottom:12px;inset-inline-start:12px;font:600 13px var(--f-body);padding:5px 11px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line)}
-.badge.rec{background:var(--rec);color:#fff;border-color:var(--rec)}
-.count{position:absolute;inset:0;display:grid;place-items:center;font:400 120px var(--f-display);color:var(--ink);opacity:.85;pointer-events:none}
-.pip{position:absolute;bottom:12px;inset-inline-end:12px;width:28%;border-radius:10px;overflow:hidden;border:2px solid var(--surface)}
-.pip video{width:100%;display:block;transform:scaleX(-1)}
-.pip.hiddenpip{width:2px;height:2px;opacity:0;border:0}
-.caption{min-height:52px;font-size:20px;line-height:1.5;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px 8px}
+.badge{position:absolute;top:10px;inset-inline-start:10px;font:600 13px var(--f-body);padding:4px 11px;border-radius:999px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.badge.live{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.caption{flex:1;min-height:110px;max-height:30vh;overflow-y:auto;font-size:26px;line-height:1.45;padding:14px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line);display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px 10px}
 .caption .w{color:var(--muted)}
-.caption .w.known{color:var(--ink);font-weight:600;border-bottom:2px solid var(--accent)}
-.caption .w.active{background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:0 6px;border-bottom-color:transparent}
-.caption .empty{color:var(--muted);font-size:15px}
-/* Library */
-.lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.lib li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
-.lib li:first-child{border-top:0}
-.lib .name{flex:1;font-weight:600;min-width:0;overflow-wrap:anywhere}
-.lib .meta{font:500 12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.lib .ex{font:500 11px var(--f-body);color:var(--warn);border:1px solid var(--warn);border-radius:999px;padding:1px 7px;margin-inline-start:6px}
-.icon{background:none;border:1px solid transparent;border-radius:8px;padding:6px 8px;color:var(--muted);cursor:pointer;font:600 13px var(--f-body)}
-.icon:hover{border-color:var(--line);color:var(--ink)}
-.icon.danger{color:var(--rec)}
-.empty-lib{padding:18px;color:var(--muted);font-size:14px;text-align:center}
-.mic.listening{background:var(--rec);border-color:var(--rec);color:#fff}
-footer{font-size:12px;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.caption .w.known{color:var(--ink);font-weight:600;border-bottom:3px solid var(--accent)}
+.caption .w.active{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:0 6px;border-bottom-color:transparent}
+.caption .interim{color:var(--muted);opacity:.6}
+.caption .empty{color:var(--muted);font-size:17px}
+.mic{width:100%;border:0;border-radius:18px;padding:18px;font:600 20px var(--f-body);background:var(--accent);color:var(--accent-ink);display:flex;gap:12px;align-items:center;justify-content:center;cursor:pointer}
+.mic .dot{width:14px;height:14px;border-radius:50%;background:currentColor}
+.mic.listening{background:var(--rec);color:#fff}
+.mic.listening .dot{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.mic.listening .dot{animation:none}}
+.mic:disabled{opacity:.5}
+.type{display:flex;gap:8px}
+.type input{flex:1;min-width:0;font:16px var(--f-body);padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.type button{font:600 15px var(--f-body);padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.note{font-size:14px;color:var(--muted);min-height:1.2em}
+.note.err{color:var(--rec)}
+footer{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+footer a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>סטודיו סימנים</h1>
-    <div class="privacy"><b>●</b> הווידאו לא נשמר. נשמרות רק נקודות תנועה, ורק במחשב הזה.</div>
-  </header>
-
-  <main>
-    <section class="panel" aria-label="לוח בקרה">
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="tab-rec" aria-selected="true" data-pane="pane-rec">הקלטת סימן</button>
-        <button class="tab" role="tab" id="tab-lib" aria-selected="false" data-pane="pane-lib">המאגר</button>
-        <button class="tab" role="tab" id="tab-tr" aria-selected="false" data-pane="pane-tr">תרגום</button>
-      </div>
-
-      <!-- Record -->
-      <div class="pane" id="pane-rec" role="tabpanel">
-        <h2>מקליטים סימן אחד בכל פעם</h2>
-        <ol class="steps">
-          <li>שבי מול המצלמה, כך שרואים את הראש, הכתפיים ושתי הידיים.</li>
-          <li>כתבי את המילה או הביטוי שהסימן מייצג.</li>
-          <li>לחצי "הקלטה", סמני אחרי הספירה, ולחצי "עצירה" (או רווח).</li>
-          <li>בדקי את האווטאר ושמרי.</li>
-        </ol>
-        <div class="row">
-          <button class="btn primary" id="btn-cam">הפעלת מצלמה</button>
-          <label class="btn" for="file-video" style="cursor:pointer">העלאת סרטון</label>
-          <input type="file" id="file-video" accept="video/*" hidden>
-          <label class="chk"><input type="checkbox" id="chk-pip"> הצגת המצלמה על המסך</label>
-        </div>
-        <div class="row">
-          <input type="text" id="sign-name" placeholder="למשל: שלום, תודה, איפה השירותים">
-        </div>
-        <div class="row" id="rec-controls">
-          <button class="btn rec" id="btn-rec" disabled><span class="dot"></span> הקלטה</button>
-        </div>
-        <div class="row" id="review-controls" hidden>
-          <button class="btn primary" id="btn-save">שמירה במאגר</button>
-          <button class="btn" id="btn-redo">הקלטה מחדש</button>
-          <button class="btn" id="btn-discard">ביטול</button>
-        </div>
-        <div class="status" id="rec-status">המצלמה כבויה. האווטאר מציג תנוחת מנוחה.</div>
-      </div>
-
-      <!-- Library -->
-      <div class="pane" id="pane-lib" role="tabpanel" hidden>
-        <h2>המאגר שלך</h2>
-        <p class="hint">כל סימן שמור כאן כנתוני תנועה בלבד. לחיצה על "הצגה" מפעילה אותו על האווטאר.</p>
-        <ul class="lib" id="lib"></ul>
-        <div class="row">
-          <button class="btn" id="btn-export">ייצוא המאגר לקובץ</button>
-          <label class="btn" for="file-import" style="cursor:pointer">ייבוא מקובץ</label>
-          <input type="file" id="file-import" accept="application/json,.json" hidden>
-        </div>
-        <p class="hint">כדאי לייצא מדי פעם כגיבוי. המאגר נשמר בדפדפן, וניקוי נתוני הדפדפן ימחק אותו.</p>
-      </div>
-
-      <!-- Translate -->
-      <div class="pane" id="pane-tr" role="tabpanel" hidden>
-        <h2>מדברים, והאווטאר מסמן</h2>
-        <p class="hint">מילים שיש להן סימן במאגר יסומנו. השאר יופיעו ככתובית בלבד.</p>
-        <div class="row">
-          <button class="btn mic" id="btn-mic"><span class="dot"></span> הקשבה</button>
-          <span class="hint" id="mic-note"></span>
-        </div>
-        <div class="row">
-          <input type="text" id="tr-text" placeholder="או הקלידי משפט כאן">
-          <button class="btn primary" id="btn-sign">סימון</button>
-        </div>
-      </div>
-    </section>
-
-    <section style="display:flex;flex-direction:column;gap:12px;min-width:0">
-      <div class="stage" id="stage">
-        <canvas id="cv" aria-label="אווטאר מסמן"></canvas>
-        <div class="chips">
-          <span class="chip" id="c-body"><span class="dot"></span>גוף</span>
-          <span class="chip" id="c-rh"><span class="dot"></span>יד ימין</span>
-          <span class="chip" id="c-lh"><span class="dot"></span>יד שמאל</span>
-          <span class="chip" id="c-face"><span class="dot"></span>פנים</span>
-        </div>
-        <div class="count" id="count" hidden></div>
-        <div class="badge" id="badge">מנוחה</div>
-        <div class="pip hiddenpip" id="pip"><video id="video" playsinline muted></video></div>
-      </div>
-      <div class="caption" id="caption"><span class="empty">כאן תופיע הכתובית של מה שנאמר.</span></div>
-    </section>
-  </main>
-  <footer>זיהוי תנועה: MediaPipe של Google, רץ מקומית בדפדפן. זיהוי דיבור: Chrome.</footer>
+<div class="app">
+  <header><h1>מתרגם סימנים</h1><span class="vocab" id="vocab">טוען...</span></header>
+  <div class="stage"><canvas id="cv" aria-label="אווטאר מסמן"></canvas><div class="badge" id="badge">מוכן</div></div>
+  <div class="caption" id="caption" aria-live="polite"></div>
+  <button class="mic" id="mic"><span class="dot"></span><span id="mic-label">התחילו להקשיב</span></button>
+  <div class="note" id="note"></div>
+  <form class="type" id="type-form"><input id="type-in" type="text" placeholder="או הקלידו משפט" autocomplete="off"><button type="submit">סימון</button></form>
+  <footer><button class="linkish" id="clear" style="background:none;border:0;color:var(--muted);font:inherit;padding:0;cursor:pointer">ניקוי הכתובית</button><a href="studio.html">סטודיו הקלטה</a></footer>
 </div>
-
 <script>
-/* Runs even if the 3D/AI part fails to load, so tabs always work and errors are visible. */
-(function(){
-  function showErr(msg){ var s=document.getElementById("rec-status"); if(s){ s.textContent="שגיאה טכנית: "+msg+" (שלחי לי צילום מסך של ההודעה הזו)"; s.classList.add("err"); } }
-  window.addEventListener("error",function(e){ showErr(e.message||String(e.error)); });
-  window.addEventListener("unhandledrejection",function(e){ var r=e.reason; showErr((r&&r.message)||String(r)); });
-  var tabs=document.querySelectorAll(".tab");
-  tabs.forEach(function(t){ t.addEventListener("click",function(){
-    tabs.forEach(function(x){ x.setAttribute("aria-selected",x===t?"true":"false"); document.getElementById(x.dataset.pane).hidden=(x!==t); });
-    document.dispatchEvent(new CustomEvent("tabchange",{detail:t.id}));
-  }); });
-})();
+window.addEventListener("error",function(e){var n=document.getElementById("note");if(n){n.textContent="שגיאה טכנית: "+(e.message||e.error);n.className="note err";}});
+window.addEventListener("unhandledrejection",function(e){var n=document.getElementById("note"),r=e.reason;if(n){n.textContent="שגיאה טכנית: "+((r&&r.message)||r);n.className="note err";}});
 </script>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
@@ -414,290 +293,103 @@ function play(signs,{loop=false,onMark=null,onEnd=null,label="מסמן"}={}){
 }
 function stopPlay(){ player=null; }
 
-/* ---------- storage ---------- */
-const KEY="signstudio.library.v1";
+
+/* ---------- vocabulary: shared signs.json + this device's own recordings ---------- */
 let library=[];
-function loadLib(){
-  try{ library=JSON.parse(localStorage.getItem(KEY)||"null")||null; }catch{ library=null; }
-  if(Array.isArray(library)) library=library.filter(s=>s&&s.name&&Array.isArray(s.frames)&&s.frames.length);
-  if(!library||!library.length){ library=[{id:"demo-wave",name:"נפנוף לדוגמה",example:true,created:Date.now(),frames:demoWave()}]; }
-}
-function saveLib(){
-  try{ localStorage.setItem(KEY,JSON.stringify(library)); return true; }
-  catch(e){ setStatus("המאגר מלא בדפדפן. ייצאי אותו לקובץ ומחקי סימנים ישנים כדי לפנות מקום.",true); return false; }
-}
-
-/* ---------- UI: tabs ---------- */
-document.addEventListener("tabchange",e=>{ if(e.detail==="tab-lib") renderLib(); });
-const recStatus=$("rec-status");
-function setStatus(msg,err=false){ recStatus.textContent=msg; recStatus.classList.toggle("err",err); }
-const badge=$("badge");
-function setBadge(txt,rec=false){ badge.textContent=txt; badge.classList.toggle("rec",rec); }
-function setChip(id,on){ $(id).classList.toggle("on",!!on); }
-
-/* ---------- library UI ---------- */
-function renderLib(){
-  const ul=$("lib"); ul.innerHTML="";
-  if(!library.length){ ul.innerHTML='<li class="empty-lib">המאגר ריק. הקליטי סימן ראשון בלשונית "הקלטת סימן".</li>'; return; }
-  for(const s of library){
-    const li=document.createElement("li");
-    const name=document.createElement("span"); name.className="name"; name.textContent=s.name;
-    if(s.example){const e=document.createElement("span");e.className="ex";e.textContent="דוגמה, לא סימן אמיתי";name.append(e);}
-    const dur=((s.frames.at(-1).t-s.frames[0].t)/1000).toFixed(1);
-    const meta=document.createElement("span"); meta.className="meta"; meta.textContent=dur+" שנ׳";
-    const pl=document.createElement("button"); pl.className="icon"; pl.textContent="הצגה";
-    pl.onclick=()=>{ if(camOn) stopCam(); play([s],{label:s.name}); };
-    const del=document.createElement("button"); del.className="icon danger"; del.textContent="מחיקה";
-    del.onclick=()=>{
-      if(del.dataset.armed){ library=library.filter(x=>x!==s); saveLib(); renderLib(); return; }
-      del.dataset.armed="1"; del.textContent="למחוק בטוח?"; setTimeout(()=>{ if(del.isConnected){delete del.dataset.armed; del.textContent="מחיקה";} },3000);
-    };
-    li.append(name,meta,pl,del); ul.append(li);
-  }
-}
-$("btn-export").onclick=()=>{
-  const blob=new Blob([JSON.stringify({app:"sign-studio",version:1,signs:library.filter(s=>!s.example)})],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="מאגר-סימנים.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-};
-$("file-import").onchange=async e=>{
-  const file=e.target.files[0]; if(!file) return;
-  try{
-    const data=JSON.parse(await file.text()); const ids=new Set(library.map(s=>s.id)); let n=0;
-    for(const s of (data.signs||[])) if(s.id&&s.name&&Array.isArray(s.frames)&&!ids.has(s.id)){ library.push(s); n++; }
-    saveLib(); renderLib(); alertInline(`נוספו ${n} סימנים מהקובץ.`);
-  }catch{ alertInline("לא הצלחתי לקרוא את הקובץ. ודאי שזה קובץ שיוצא מהסטודיו."); }
-  e.target.value="";
-};
-function alertInline(msg){ const p=document.querySelector("#pane-lib .hint:last-child"); p.textContent=msg; }
-
-/* ---------- MediaPipe ---------- */
-let lm=null; // {pose,hand,face}
-async function loadModels(){
-  if(lm) return lm;
-  setStatus("טוען את מודלי זיהוי התנועה (פעם ראשונה לוקח כחצי דקה)...");
-  const v=await import(MP+"/vision_bundle.mjs");
-  const fs=await v.FilesetResolver.forVisionTasks(MP+"/wasm");
-  const mk=async(Cls,model,extra)=>{
-    try{ return await Cls.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:"GPU"},runningMode:"VIDEO",...extra}); }
-    catch{ return await Cls.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:"CPU"},runningMode:"VIDEO",...extra}); }
-  };
-  lm={
-    pose:await mk(v.PoseLandmarker,MODELS.pose,{numPoses:1}),
-    hand:await mk(v.HandLandmarker,MODELS.hand,{numHands:2,minHandDetectionConfidence:0.5,minTrackingConfidence:0.5}),
-    face:await mk(v.FaceLandmarker,MODELS.face,{numFaces:1,outputFaceBlendshapes:true,outputFacialTransformationMatrixes:true}),
-  };
-  return lm;
-}
-const tmpM=new THREE.Matrix4(), tmpE=new THREE.Euler();
-let lastTs=0;
-function detect(video){
-  let ts=performance.now(); if(ts<=lastTs) ts=lastTs+1; lastTs=ts;
-  const pose=lm.pose.detectForVideo(video,ts), hands=lm.hand.detectForVideo(video,ts), face=lm.face.detectForVideo(video,ts);
-  return toFrame(pose,hands,face,video.videoWidth,video.videoHeight);
-}
-function toFrame(pose,hands,face,W,H){
-  const pl=pose.landmarks&&pose.landmarks[0]; if(!pl) return null;
-  const P=i=>[pl[i].x*W,pl[i].y*H,pl[i].z*W];
-  const ls=P(11), rs=P(12);
-  const cx=(ls[0]+rs[0])/2, cy=(ls[1]+rs[1])/2, cz=(ls[2]+rs[2])/2;
-  const sw=Math.hypot(ls[0]-rs[0],ls[1]-rs[1])||1;
-  const N=([x,y,z])=>[(x-cx)/sw, -(y-cy)/sw, -(z-cz)/sw*Z_POSE];
-  const ids=[0,11,12,13,14,15,16]; const pn=ids.map(i=>N(P(i)));
-  const out={p:pn.flat().map(r3), l:null, r:null, f:null, h:null};
-  // assign hands to the nearest pose wrist (15 = person's left, 16 = person's right)
-  const wl=P(15), wr=P(16), cands=[];
-  (hands.landmarks||[]).forEach(h=>{
-    const x=h[0].x*W, y=h[0].y*H;
-    cands.push({h, dl:Math.hypot(x-wl[0],y-wl[1]), dr:Math.hypot(x-wr[0],y-wr[1])});
-  });
-  const pairs=[]; cands.forEach(c=>{pairs.push({c,side:"l",d:c.dl});pairs.push({c,side:"r",d:c.dr});});
-  pairs.sort((a,b)=>a.d-b.d); const used=new Set();
-  for(const pr of pairs){
-    if(out[pr.side]||used.has(pr.c)||pr.d>sw*1.2) continue; used.add(pr.c);
-    const wz=pn[pr.side==="l"?5:6][2];
-    out[pr.side]=pr.c.h.flatMap(q=>[r3((q.x*W-cx)/sw), r3(-(q.y*H-cy)/sw), r3(wz-(q.z*W)/sw*Z_HAND)]);
-  }
-  const bs=face.faceBlendshapes&&face.faceBlendshapes[0];
-  if(bs){
-    const m={}; for(const c of bs.categories) m[c.categoryName]=c.score;
-    out.f=FACE_KEYS.map(k=>r3(m[k]||0));
-    const mx=face.facialTransformationMatrixes&&face.facialTransformationMatrixes[0];
-    if(mx){ tmpM.fromArray(mx.data); tmpE.setFromRotationMatrix(tmpM,"XYZ");
-      const c=v=>r3(Math.max(-0.6,Math.min(0.6,v))); out.h=[c(tmpE.x),c(tmpE.y),c(tmpE.z)]; }
-  }
-  return out;
-}
-let smooth=null;
-function smoothFrame(F){
-  if(!smooth){ smooth=F; return F; }
-  const a=0.55, S=smooth;
-  const mix=(x,y)=>x&&y?x.map((v,i)=>r3(lerp(y[i],v,a))):x;
-  smooth={p:mix(F.p,S.p), l:mix(F.l,S.l), r:mix(F.r,S.r), f:mix(F.f,S.f), h:mix(F.h,S.h)};
-  return smooth;
+async function loadVocab(){
+  let shared=[], local=[];
+  try{ const r=await fetch("signs.json?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); shared=d.signs||[]; } }catch{}
+  try{ local=JSON.parse(localStorage.getItem("signstudio.library.v1")||"[]")||[]; }catch{}
+  const ok=s=>s&&s.name&&Array.isArray(s.frames)&&s.frames.length&&!s.example;
+  const byName=new Map();
+  for(const s of [...shared.filter(ok),...local.filter(ok)]) byName.set(strip(s.name),s); // device recordings override
+  library=[...byName.values()];
+  $("vocab").textContent=library.length+" סימנים";
 }
 
-/* ---------- camera & recording ---------- */
-const video=$("video");
-let camOn=false, recording=null, review=null, countdown=false;
-$("chk-pip").onchange=e=>$("pip").classList.toggle("hiddenpip",!e.target.checked);
-$("btn-cam").onclick=async()=>{
-  if(camOn){ stopCam(); return; }
-  try{
-    await loadModels();
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
-    video.srcObject=stream; await video.play(); camOn=true; stopPlay(); review=null; showReview(false);
-    $("btn-cam").textContent="כיבוי מצלמה"; $("btn-rec").disabled=false;
-    setStatus("המצלמה פועלת. האווטאר מחקה אותך בזמן אמת. כשהידיים והפנים מסומנים בירוק, אפשר להקליט.");
-  }catch(err){
-    setStatus(err&&err.name==="NotAllowedError"?"אין הרשאה למצלמה. אפשרי גישה למצלמה בהגדרות הדפדפן ונסי שוב.":"לא הצלחתי להפעיל את המצלמה או לטעון את המודלים. ודאי שיש חיבור לאינטרנט ושהקובץ נפתח ב-Chrome.",true);
-  }
-};
-function stopCam(){
-  const s=video.srcObject; if(s) s.getTracks().forEach(t=>t.stop());
-  video.srcObject=null; camOn=false; recording=null; smooth=null;
-  $("btn-cam").textContent="הפעלת מצלמה"; $("btn-rec").disabled=true; setBadge("מנוחה");
-  ["c-body","c-lh","c-rh","c-face"].forEach(c=>setChip(c,false));
-  setStatus("המצלמה כבויה.");
-}
-function stopCamLoopPreview(){ if(review){ /* keep review data, just let library play */ } }
-$("btn-rec").onclick=()=>{ if(recording) finishRec(); else startCountdown(); };
-document.addEventListener("keydown",e=>{
-  if(e.code==="Space" && camOn && !(e.target instanceof HTMLInputElement)){ e.preventDefault(); $("btn-rec").click(); }
-});
-function startCountdown(){
-  if(countdown) return; countdown=true; review=null; showReview(false); stopPlay();
-  const el=$("count"); let n=3; el.hidden=false; el.textContent=n;
-  const iv=setInterval(()=>{ n--; if(n>0){ el.textContent=n; } else { clearInterval(iv); el.hidden=true; countdown=false; beginRec(); } },700);
-}
-function beginRec(){
-  recording={frames:[],start:performance.now()};
-  $("btn-rec").innerHTML='<span class="dot"></span> עצירה'; setBadge("מקליט",true);
-  setStatus("מקליט. סמני עכשיו, ולחצי עצירה (או רווח) כשסיימת.");
-}
-function finishRec(){
-  const frames=recording?recording.frames:[]; recording=null;
-  $("btn-rec").innerHTML='<span class="dot"></span> הקלטה'; setBadge("בדיקה");
-  enterReview(frames);
-}
-function trim(frames){
-  let a=frames.findIndex(f=>f.l||f.r), b=frames.length-1-[...frames].reverse().findIndex(f=>f.l||f.r);
-  if(a<0) return frames;
-  a=Math.max(0,a-3); b=Math.min(frames.length-1,b+3);
-  const out=frames.slice(a,b+1); const t0=out[0].t; return out.map(f=>({...f,t:f.t-t0}));
-}
-function enterReview(frames){
-  frames=trim(frames);
-  if(frames.length<6 || !frames.some(f=>f.l||f.r)){ setStatus("לא זוהו ידיים בהקלטה. ודאי ששתי הידיים בתוך הפריים והתאורה טובה, ונסי שוב.",true); return; }
-  review=frames; showReview(true);
-  const dur=(frames.at(-1).t/1000).toFixed(1);
-  setStatus(`הוקלטו ${dur} שניות. האווטאר מציג את הסימן בלולאה. אם זה נראה טוב, תני שם ושמרי.`);
-  play([{frames}],{loop:true,label:"בדיקה"});
-}
-function showReview(on){ $("review-controls").hidden=!on; $("rec-controls").hidden=on; }
-$("btn-save").onclick=()=>{
-  if(!review||!review.length){ setStatus("אין הקלטה לשמירה. לחצי קודם \"הקלטה\" וסמני.",true); showReview(false); return; }
-  const name=$("sign-name").value.trim();
-  if(!name){ setStatus("חסר שם לסימן. כתבי מה הוא אומר, למשל \"תודה\".",true); $("sign-name").focus(); return; }
-  library=library.filter(s=>!s.example);
-  library.push({id:"s"+Date.now().toString(36),name,created:Date.now(),frames:review});
-  if(saveLib()){ setStatus(`"${name}" נשמר במאגר. יש בו עכשיו ${library.length} סימנים.`); }
-  review=null; showReview(false); stopPlay(); $("sign-name").value="";
-};
-$("btn-redo").onclick=()=>{ review=null; showReview(false); stopPlay(); if(camOn) startCountdown(); else setStatus("הפעילי מצלמה או העלי סרטון חדש."); };
-$("btn-discard").onclick=()=>{ review=null; showReview(false); stopPlay(); setStatus(camOn?"ההקלטה נמחקה. המצלמה עדיין פועלת.":"ההקלטה נמחקה."); };
-
-// video file upload: processed frame by frame, never stored
-$("file-video").onchange=async e=>{
-  const file=e.target.files[0]; e.target.value=""; if(!file) return;
-  if(camOn) stopCam();
-  try{ await loadModels(); }catch{ setStatus("לא הצלחתי לטעון את המודלים. ודאי שיש חיבור לאינטרנט.",true); return; }
-  const url=URL.createObjectURL(file); const v=document.createElement("video");
-  v.src=url; v.muted=true; v.playsInline=true;
-  await new Promise((res,rej)=>{v.onloadeddata=res; v.onerror=rej;}).catch(()=>{});
-  if(!v.videoWidth){ URL.revokeObjectURL(url); setStatus("לא הצלחתי לפתוח את הסרטון. נסי קובץ MP4.",true); return; }
-  setStatus("מעבד את הסרטון..."); setBadge("מעבד"); stopPlay(); smooth=null;
-  const frames=[];
-  await new Promise(resolve=>{
-    const step=(now,meta)=>{
-      const F=detect(v); if(F){ const S=smoothFrame(F); frames.push({...S,t:Math.round(meta.mediaTime*1000)}); applyFrame(S); }
-      if(!v.ended) v.requestVideoFrameCallback(step);
-    };
-    v.onended=resolve; v.requestVideoFrameCallback(step); v.play();
-  });
-  URL.revokeObjectURL(url); v.removeAttribute("src"); v.load(); smooth=null;
-  setBadge("בדיקה"); enterReview(frames);
-};
-
-/* ---------- translate ---------- */
+/* ---------- matching ---------- */
 const strip=s=>s.replace(/[֑-ׇ]/g,"").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim().toLowerCase();
-function tokenize(text){ return strip(text).split(" ").filter(Boolean); }
 function matchSigns(text){
-  const words=tokenize(text), map=new Map(library.map(s=>[strip(s.name),s]));
+  const words=strip(text).split(" ").filter(Boolean), map=new Map(library.map(s=>[strip(s.name),s]));
   const maxN=Math.max(1,...library.map(s=>strip(s.name).split(" ").length));
   const out=[]; let i=0;
   while(i<words.length){
     let hit=null;
     for(let n=Math.min(maxN,words.length-i);n>=1;n--){ const k=words.slice(i,i+n).join(" "); if(map.has(k)){hit={sign:map.get(k),n,text:k};break;} }
-    if(!hit){ const w=words[i]; if(w.length>2 && "והבלמשכ".includes(w[0]) && map.has(w.slice(1))) hit={sign:map.get(w.slice(1)),n:1,text:w}; }
+    if(!hit){ const w=words[i]; if(w.length>2&&"והבלמשכ".includes(w[0])&&map.has(w.slice(1))) hit={sign:map.get(w.slice(1)),n:1,text:w}; }
     if(hit){ out.push({text:hit.text,sign:hit.sign}); i+=hit.n; } else { out.push({text:words[i]}); i++; }
   }
   return out;
 }
+
+/* ---------- caption + sign queue ---------- */
 const caption=$("caption");
-function renderCaption(tokens,active=-1){
+let tokens=[], interim="", active=-1, queue=[];
+function renderCaption(){
   caption.innerHTML="";
-  if(!tokens.length){ caption.innerHTML='<span class="empty">כאן תופיע הכתובית של מה שנאמר.</span>'; return; }
+  if(!tokens.length&&!interim){ caption.innerHTML='<span class="empty">לחצו על הכפתור ותנו לאדם השומע לדבר אל הטלפון. התרגום יופיע כאן ועל האווטאר.</span>'; return; }
   tokens.forEach((t,i)=>{ const s=document.createElement("span"); s.className="w"+(t.sign?" known":"")+(i===active?" active":""); s.textContent=t.text; caption.append(s); });
+  if(interim){ const s=document.createElement("span"); s.className="interim"; s.textContent=interim; caption.append(s); }
+  caption.scrollTop=caption.scrollHeight;
 }
-function signText(text){
-  const tokens=matchSigns(text); renderCaption(tokens);
-  const seq=tokens.map((t,i)=>t.sign?{frames:t.sign.frames,idx:i}:null).filter(Boolean);
-  if(!seq.length) return;
-  if(camOn) stopCam();
-  review=null; showReview(false);
-  play(seq,{label:"מסמן",onMark:idx=>renderCaption(tokens,idx),onEnd:()=>renderCaption(tokens)});
+function addText(text){
+  const add=matchSigns(text);
+  tokens.push(...add);
+  if(tokens.length>60){ const cut=tokens.length-60; tokens=tokens.slice(cut); queue.forEach(q=>q.idx-=cut); active-=cut; }
+  const start=tokens.length-add.length; add.forEach((t,i)=>{ if(t.sign) queue.push({frames:t.sign.frames, idx:start+i}); });
+  renderCaption(); pump();
 }
-$("btn-sign").onclick=()=>signText($("tr-text").value);
-$("tr-text").addEventListener("keydown",e=>{ if(e.key==="Enter") signText(e.target.value); });
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition; let rec=null;
-if(!SR){ $("btn-mic").disabled=true; $("mic-note").textContent="זיהוי דיבור זמין ב-Chrome ובאדג׳. אפשר להקליד בינתיים."; }
-$("btn-mic").onclick=()=>{
-  if(rec){ rec.stop(); return; }
-  rec=new SR(); rec.lang="he-IL"; rec.interimResults=true; rec.continuous=false;
-  $("btn-mic").classList.add("listening"); $("mic-note").textContent="מקשיב...";
-  let finalText="";
+function pump(){
+  if(player||!queue.length) return;
+  const batch=queue.splice(0);
+  play(batch,{label:"מסמן",onMark:i=>{active=i;renderCaption();},onEnd:()=>{active=-1;renderCaption();pump();}});
+}
+
+/* ---------- speech ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const mic=$("mic"), note=$("note"), badge=$("badge");
+let rec=null, wantListen=false;
+function setNote(m,err=false){ note.textContent=m; note.classList.toggle("err",err); }
+if(!SR){ mic.disabled=true; setNote("זיהוי דיבור לא זמין בדפדפן הזה. אפשר להקליד למטה. באייפון: Safari, ובאנדרואיד: Chrome.",true); }
+function startRec(){
+  rec=new SR(); rec.lang="he-IL"; rec.interimResults=true; rec.continuous=true;
   rec.onresult=e=>{
-    let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) finalText+=r[0].transcript+" "; else interim+=r[0].transcript; }
-    renderCaption(matchSigns(finalText+interim)); $("tr-text").value=(finalText+interim).trim();
+    let im="";
+    for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) addText(r[0].transcript); else im+=r[0].transcript; }
+    interim=im; renderCaption();
   };
-  rec.onerror=e=>{ $("mic-note").textContent=e.error==="not-allowed"?"אין הרשאה למיקרופון.":"זיהוי הדיבור נכשל. נסי שוב."; };
-  rec.onend=()=>{ $("btn-mic").classList.remove("listening"); rec=null; if(finalText.trim()){ $("mic-note").textContent=""; signText(finalText); } else if($("mic-note").textContent==="מקשיב...") $("mic-note").textContent="לא נשמע דיבור."; };
+  rec.onerror=e=>{
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ wantListen=false; setNote("אין הרשאה למיקרופון או לזיהוי דיבור. באייפון: הגדרות > Safari > מיקרופון, ובנוסף ודאו שהכתבה (Dictation) מופעלת.",true); }
+    else if(e.error!=="no-speech"&&e.error!=="aborted") setNote("זיהוי הדיבור נעצר ("+e.error+"). ממשיך להקשיב...",true);
+  };
+  rec.onend=()=>{ if(interim){ addText(interim); interim=""; } rec=null; if(wantListen){ try{ startRec(); }catch{ stopListen(); } } else updateMic(); };
   rec.start();
+}
+function updateMic(){
+  mic.classList.toggle("listening",wantListen);
+  $("mic-label").textContent=wantListen?"מקשיב. לחצו לעצירה":"התחילו להקשיב";
+  badge.textContent=wantListen?"מקשיב":"מוכן"; badge.classList.toggle("live",wantListen);
+}
+function stopListen(){ wantListen=false; if(rec) rec.stop(); updateMic(); }
+mic.onclick=()=>{
+  if(wantListen){ stopListen(); return; }
+  wantListen=true; setNote(""); updateMic();
+  try{ startRec(); }catch(e){ wantListen=false; updateMic(); setNote("לא הצלחתי להפעיל את המיקרופון.",true); }
 };
+$("type-form").addEventListener("submit",e=>{ e.preventDefault(); const v=$("type-in").value.trim(); if(v){ addText(v); $("type-in").value=""; } });
+$("clear").onclick=()=>{ tokens=[]; queue=[]; interim=""; active=-1; stopPlay(); renderCaption(); };
 
 /* ---------- main loop ---------- */
-let lastChip=0;
 function loop(now){
-  if(camOn && video.readyState>=2 && lm){
-    const F=detect(video);
-    if(now-lastChip>200){ lastChip=now; setChip("c-body",F); setChip("c-lh",F&&F.l); setChip("c-rh",F&&F.r); setChip("c-face",F&&F.f); }
-    if(F){
-      const S=smoothFrame(F); applyFrame(S);
-      if(recording){ recording.frames.push({...S,t:Math.round(now-recording.start)}); if(now-recording.start>10000) finishRec(); }
-      else if(!countdown) setBadge("חי");
-    }
-  } else if(player){
+  if(player){
     let ms=now-player.start; const end=player.frames.at(-1).t;
-    if(ms>end){ if(player.loop){ player.start=now; ms=0; player.lastMark=-1; } else { const cb=player.onEnd; player=null; setBadge("מנוחה"); if(cb) cb(); applyFrame(restFrame()); renderer.render(scene,camera); requestAnimationFrame(loop); return; } }
-    applyFrame(frameAt(player,ms)); setBadge(player.label);
-    if(player.onMark){ let m=-1; for(const k of player.marks) if(ms>=k.t) m=k.idx; if(m!==player.lastMark){ player.lastMark=m; player.onMark(m); } }
-  } else {
-    applyFrame(restFrame(Math.sin(now/900)));
-  }
+    if(ms>end){ const cb=player.onEnd; player=null; applyFrame(restFrame()); if(cb) cb(); }
+    else{ applyFrame(frameAt(player,ms)); if(player.onMark){ let m=-1; for(const k of player.marks) if(ms>=k.t) m=k.idx; if(m!==player.lastMark){ player.lastMark=m; player.onMark(m); } } }
+  } else applyFrame(restFrame(Math.sin(now/900)));
   renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
-loadLib(); renderLib();
+renderCaption(); updateMic(); loadVocab();
 requestAnimationFrame(loop);
 </script>
 </body>
