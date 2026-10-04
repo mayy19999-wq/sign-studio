@@ -78,6 +78,9 @@ label.chk{display:inline-flex;gap:8px;align-items:center;font-size:14px;color:va
 .caption .w.active{background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:0 6px;border-bottom-color:transparent}
 .caption .empty{color:var(--muted);font-size:15px}
 /* Library */
+.letters{display:flex;flex-wrap:wrap;gap:6px}
+.letters button{min-width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:600 17px var(--f-body);cursor:pointer}
+.letters button.done{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .lib li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
 .lib li:first-child{border-top:0}
@@ -126,6 +129,11 @@ footer{font-size:12px;color:var(--muted)}
         <div class="row">
           <input type="text" id="sign-name" placeholder="למשל: שלום, תודה, איפה השירותים">
         </div>
+        <details>
+          <summary class="hint" style="cursor:pointer">אותיות לאיות (מאפשרות לאיית כל מילה שאין לה סימן)</summary>
+          <p class="hint" style="margin-block:8px">לחצי על אות כדי לבחור אותה כשם הסימן, והקליטי את האות באצבעות. אות שכבר הוקלטה מסומנת בצבע.</p>
+          <div class="letters" id="letters"></div>
+        </details>
         <div class="row" id="rec-controls">
           <button class="btn rec" id="btn-rec" disabled><span class="dot"></span> הקלטה</button>
         </div>
@@ -404,8 +412,9 @@ function buildSequence(signs){
   signs.forEach((s,i)=>{
     const fr=fillGaps(s.frames); const t0=fr[0].t;
     marks.push({t, idx:s.idx??i});
-    for(const f of fr) frames.push({...f, t:t+(f.t-t0)});
-    t=frames[frames.length-1].t+260;
+    const sc=s.scale||1;
+    for(const f of fr) frames.push({...f, t:t+(f.t-t0)*sc});
+    t=frames[frames.length-1].t+(s.gap??260);
   });
   frames.push({...restFrame(), t:t+120});
   return {frames, marks};
@@ -608,7 +617,7 @@ $("btn-save").onclick=()=>{
   library=library.filter(s=>!s.example);
   library.push({id:"s"+Date.now().toString(36),name,created:Date.now(),frames:review});
   if(saveLib()){ setStatus(`"${name}" נשמר במאגר. יש בו עכשיו ${library.length} סימנים.`); }
-  review=null; showReview(false); stopPlay(); $("sign-name").value="";
+  review=null; showReview(false); stopPlay(); $("sign-name").value=""; renderLetters();
 };
 $("btn-redo").onclick=()=>{ review=null; showReview(false); stopPlay(); if(camOn) startCountdown(); else setStatus("הפעילי מצלמה או העלי סרטון חדש."); };
 $("btn-discard").onclick=()=>{ review=null; showReview(false); stopPlay(); setStatus(camOn?"ההקלטה נמחקה. המצלמה עדיין פועלת.":"ההקלטה נמחקה."); };
@@ -704,6 +713,15 @@ function loop(now){
   renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
+function renderLetters(){
+  const have=new Set(library.filter(x=>!x.example).map(x=>x.name.trim()));
+  const box=$("letters"); box.innerHTML="";
+  for(const ch of "אבגדהוזחטיכלמנסעפצקרשת"){
+    const b=document.createElement("button"); b.type="button"; b.textContent=ch; if(have.has(ch)) b.className="done";
+    b.onclick=()=>{ $("sign-name").value=ch; $("sign-name").focus(); }; box.append(b);
+  }
+}
+const _renderLib=renderLib; renderLib=function(){ _renderLib(); renderLetters(); };
 loadLib(); renderLib();
 requestAnimationFrame(loop);
 </script>
