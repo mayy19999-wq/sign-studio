@@ -183,6 +183,19 @@ footer{font-size:12px;color:var(--muted)}
   <footer>זיהוי תנועה: MediaPipe של Google, רץ מקומית בדפדפן. זיהוי דיבור: Chrome.</footer>
 </div>
 
+<script>
+/* Runs even if the 3D/AI part fails to load, so tabs always work and errors are visible. */
+(function(){
+  function showErr(msg){ var s=document.getElementById("rec-status"); if(s){ s.textContent="שגיאה טכנית: "+msg+" (שלחי לי צילום מסך של ההודעה הזו)"; s.classList.add("err"); } }
+  window.addEventListener("error",function(e){ showErr(e.message||String(e.error)); });
+  window.addEventListener("unhandledrejection",function(e){ var r=e.reason; showErr((r&&r.message)||String(r)); });
+  var tabs=document.querySelectorAll(".tab");
+  tabs.forEach(function(t){ t.addEventListener("click",function(){
+    tabs.forEach(function(x){ x.setAttribute("aria-selected",x===t?"true":"false"); document.getElementById(x.dataset.pane).hidden=(x!==t); });
+    document.dispatchEvent(new CustomEvent("tabchange",{detail:t.id}));
+  }); });
+})();
+</script>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
@@ -413,10 +426,7 @@ function saveLib(){
 }
 
 /* ---------- UI: tabs ---------- */
-document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
-  document.querySelectorAll(".tab").forEach(x=>{x.setAttribute("aria-selected",x===t?"true":"false"); $(x.dataset.pane).hidden=x!==t;});
-  if(t.id==="tab-lib") renderLib();
-}));
+document.addEventListener("tabchange",e=>{ if(e.detail==="tab-lib") renderLib(); });
 const recStatus=$("rec-status");
 function setStatus(msg,err=false){ recStatus.textContent=msg; recStatus.classList.toggle("err",err); }
 const badge=$("badge");
